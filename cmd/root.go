@@ -18,5 +18,7 @@ func NewRootCommand() *cobra.Command {
 		},
 	}
 
+	root.AddCommand(NewStringSessionCommand())
+
 	return root
 }
