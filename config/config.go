@@ -1,6 +1,6 @@
 package config
 
-type config struct {
+type Config struct {
 	ApiID          int32    `envconfig:"API_ID" required:"true"`
 	ApiHash        string   `envconfig:"API_HASH" required:"true"`
 	BotToken       string   `envconfig:"BOT_TOKEN" required:"true"`
