@@ -50,3 +50,23 @@ func InputPrompt(label string) string {
 	}
 	return strings.TrimSpace(s)
 }
+
+// AuthPrompt implements the Telegram auth flow interface
+type AuthPrompt struct {
+	PhoneNumber string
+}
+
+// Code prompts the user to enter the code sent by Telegram
+func (a AuthPrompt) Code() (string, error) {
+	return InputPrompt("Enter the code you received: "), nil
+}
+
+// Password prompts the user to enter their 2FA password
+func (a AuthPrompt) Password() (string, error) {
+	return PromptPassword("Enter your password (if applicable): ")
+}
+
+// Phone returns the phone number provided
+func (a AuthPrompt) Phone() string {
+	return a.PhoneNumber
+}
