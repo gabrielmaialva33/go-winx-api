@@ -56,7 +56,7 @@ func GenerateQRSession(apiId int, apiHash string) error {
 		UpdateHandler:  dispatcher,
 		SessionStorage: sessionStorage,
 		Device: telegram.DeviceConfig{
-			DeviceModel:   "Pyrogram",
+			DeviceModel:   "CineWinx",
 			SystemVersion: runtime.GOOS,
 			AppVersion:    "2.0",
 		},

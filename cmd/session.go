@@ -1,12 +1,10 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"github.com/spf13/cobra"
 	"go-winx-api/config"
 	"go-winx-api/internal/pkg/qrlogin"
-	"go-winx-api/internal/terminal"
 )
 
 func NewStringSessionCommand() *cobra.Command {
@@ -21,33 +19,11 @@ func NewStringSessionCommand() *cobra.Command {
 			appID := int(config.ValueOf.ApiID)
 			appHash := config.ValueOf.ApiHash
 
-			if appID == 0 || appHash == "" {
-				return errors.New("missing API_ID or API_HASH configuration. Set them in the environment variables or configuration file")
-			}
-
-			if phone == "" {
-				fmt.Println("Phone number not provided. You can proceed using QR Login or provide a phone number.")
-
-				useQr := terminal.InputPrompt("Do you want to proceed with QR login? (yes/no)")
-				if useQr == "yes" {
-
-					err := qrlogin.GenerateQRSession(appID, appHash)
-					if err != nil {
-						return fmt.Errorf("failed to generate session via QR Login: %w", err)
-					}
-					return nil
-				} else {
-					return errors.New("session generation aborted. Please provide a phone number or use QR Login")
-				}
-			}
-
-			fmt.Println("Starting session generation with phone login...")
 			err := qrlogin.GenerateQRSession(appID, appHash)
 			if err != nil {
 				return fmt.Errorf("failed to generate session via phone login: %w", err)
 			}
 
-			fmt.Println("Session generated successfully!")
 			return nil
 		},
 	}
