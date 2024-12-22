@@ -3,17 +3,20 @@ module go-winx-api
 go 1.23.4
 
 require (
-	github.com/go-faster/errors v0.7.1
 	github.com/gotd/td v0.116.0
 	github.com/joho/godotenv v1.5.1
+	github.com/kelseyhightower/envconfig v1.4.0
+	github.com/mdp/qrterminal v1.0.1
 	github.com/spf13/cobra v1.8.1
 	go.uber.org/zap v1.27.0
 	golang.org/x/term v0.27.0
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/coder/websocket v1.8.12 // indirect
+	github.com/go-faster/errors v0.7.1 // indirect
 	github.com/go-faster/jx v1.1.0 // indirect
 	github.com/go-faster/xor v1.0.0 // indirect
 	github.com/gotd/ige v0.2.2 // indirect
