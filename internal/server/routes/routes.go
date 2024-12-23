@@ -24,12 +24,16 @@ func SetupRoutes(app *fiber.App, log *zap.Logger) {
 		apiID := int(config.ValueOf.ApiID)
 		apiHash := config.ValueOf.ApiHash
 
-		qrInfo, err := qrlogin.GenerateQRSessionJSON(apiID, apiHash)
+		qrURL, err := qrlogin.GenerateQRSessionURL(apiID, apiHash, log)
 		if err != nil {
-			log.Error("error generating QR code", zap.Error(err))
-			return c.Status(fiber.StatusInternalServerError).JSON(qrInfo)
+			log.Error("error generating QR Code", zap.Error(err))
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "failed to generate QR Code",
+			})
 		}
 
-		return c.Status(fiber.StatusOK).JSON(qrInfo)
+		return c.JSON(fiber.Map{
+			"qr_url": qrURL,
+		})
 	})
 }
