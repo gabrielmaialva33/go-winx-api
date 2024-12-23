@@ -1,10 +1,12 @@
 package cmd
 
 import (
-	"github.com/spf13/cobra"
 	"go-winx-api/config"
 	"go-winx-api/internal/bot"
+	"go-winx-api/internal/server"
 	"go-winx-api/internal/utils"
+
+	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
 
@@ -39,6 +41,9 @@ func NewRunCommand() *cobra.Command {
 			mainLogger.Info("Server started", zap.Int("port", config.ValueOf.Port))
 			mainLogger.Info("File Stream Bot", zap.String("version", versionString))
 			mainLogger.Sugar().Infof("Server is running at %s", config.ValueOf.Host)
+
+			s := server.NewServer(log)
+			s.Start()
 
 			if err != nil {
 				mainLogger.Sugar().Fatalln(err)
