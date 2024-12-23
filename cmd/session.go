@@ -2,10 +2,11 @@ package cmd
 
 import (
 	"fmt"
+
+	"go-winx-api/config"
 	"go-winx-api/pkg/qrlogin"
 
 	"github.com/spf13/cobra"
-	"go-winx-api/config"
 )
 
 func NewStringSessionCommand() *cobra.Command {
