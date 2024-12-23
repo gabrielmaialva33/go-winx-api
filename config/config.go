@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -219,13 +220,18 @@ func getIP(public bool) (string, error) {
 	return ip, nil
 }
 
-// https://stackoverflow.com/a/23558495/15807350
 func getInternalIP() (string, error) {
 	conn, err := net.Dial("udp", "1.1.1.1:80")
 	if err != nil {
 		return "", errors.New("no internet connection")
 	}
-	defer conn.Close()
+	defer func(conn net.Conn) {
+		err := conn.Close()
+		if err != nil {
+			_ = fmt.Errorf("error while closing connection: %v", err)
+			return
+		}
+	}(conn)
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
 	return localAddr.IP.String(), nil
 }
@@ -235,7 +241,13 @@ func GetPublicIP() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			_ = fmt.Errorf("error while closing body: %v", err)
+			return
+		}
+	}(resp.Body)
 	ip, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
@@ -251,7 +263,13 @@ func checkIfIpAccessible(ip string) bool {
 	if err != nil {
 		return false
 	}
-	defer conn.Close()
+	defer func(conn net.Conn) {
+		err := conn.Close()
+		if err != nil {
+			_ = fmt.Errorf("error while closing connection: %v", err)
+			return
+		}
+	}(conn)
 	return true
 }
 
