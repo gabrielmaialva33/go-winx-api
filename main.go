@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
-	"go-winx-api/config"
 	"os"
 
-	"github.com/spf13/cobra"
 	"go-winx-api/cmd"
+	"go-winx-api/config"
 	"go-winx-api/internal/utils"
+
+	"github.com/spf13/cobra"
 )
 
 var rootCmd *cobra.Command
