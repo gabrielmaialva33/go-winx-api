@@ -11,31 +11,48 @@ import (
 
 var Logger *zap.Logger
 
-func InitLogger() {
-	customTimeEncoder := func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
-		enc.AppendString(t.Format("02/01/2006 03:04 PM"))
-	}
-	consoleConfig := zap.NewDevelopmentEncoderConfig()
-	consoleConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-	consoleConfig.EncodeTime = customTimeEncoder
-	consoleEncoder := zapcore.NewConsoleEncoder(consoleConfig)
+const (
+	logFilePath       = "logs/app.log"
+	logMaxSizeMB      = 10
+	logMaxBackups     = 3
+	logMaxAgeDays     = 7
+	logCompression    = true
+	humanReadableTime = "02/01/2006 03:04 PM"
+)
 
-	fileEncoderConfig := zap.NewProductionEncoderConfig()
-	fileEncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-	fileEncoder := zapcore.NewJSONEncoder(fileEncoderConfig)
+func InitLogger() {
+	Logger = zap.New(createCore(), zap.AddStacktrace(zapcore.FatalLevel))
+}
+
+func createCore() zapcore.Core {
+	consoleEncoder := createConsoleEncoder()
+	fileEncoder := createFileEncoder()
 
 	fileWriter := zapcore.AddSync(&lumberjack.Logger{
-		Filename:   "logs/app.log",
-		MaxSize:    10,
-		MaxBackups: 3,
-		MaxAge:     7,
-		Compress:   true,
+		Filename:   logFilePath,
+		MaxSize:    logMaxSizeMB,
+		MaxBackups: logMaxBackups,
+		MaxAge:     logMaxAgeDays,
+		Compress:   logCompression,
 	})
 
-	core := zapcore.NewTee(
+	return zapcore.NewTee(
 		zapcore.NewCore(consoleEncoder, zapcore.AddSync(os.Stdout), zapcore.InfoLevel),
 		zapcore.NewCore(fileEncoder, fileWriter, zapcore.DebugLevel),
 	)
+}
 
-	Logger = zap.New(core, zap.AddStacktrace(zapcore.FatalLevel))
+func createConsoleEncoder() zapcore.Encoder {
+	config := zap.NewDevelopmentEncoderConfig()
+	config.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	config.EncodeTime = func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
+		enc.AppendString(t.Format(humanReadableTime))
+	}
+	return zapcore.NewConsoleEncoder(config)
+}
+
+func createFileEncoder() zapcore.Encoder {
+	config := zap.NewProductionEncoderConfig()
+	config.EncodeTime = zapcore.ISO8601TimeEncoder
+	return zapcore.NewJSONEncoder(config)
 }
