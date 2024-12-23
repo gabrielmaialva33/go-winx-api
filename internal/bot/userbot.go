@@ -67,7 +67,7 @@ func (u *UserBotStruct) AddBotsAsAdmins() error {
 		return errors.New("no channels found")
 	}
 	inputChannel := channelInfos.GetChats()[0].(*tg.Channel).AsInput()
-	currentAdmins := []int64{}
+	var currentAdmins []int64
 	admins, err := u.client.API().ChannelsGetParticipants(ctx, &tg.ChannelsGetParticipantsRequest{
 		Channel: inputChannel,
 		Filter:  &tg.ChannelParticipantsAdmins{},
