@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"go.uber.org/zap"
 	"os"
 	"runtime"
 	"strings"
@@ -145,4 +146,42 @@ func GenerateQRSession(apiId int, apiHash string) error {
 		return err
 	}
 	return nil
+}
+
+func GenerateQRSessionURL(apiID int, apiHash string, log *zap.Logger) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
+	log.Info("generating QR Code session")
+
+	dispatcher := tg.NewUpdateDispatcher()
+	sessionStorage := &session.StorageMemory{}
+	client := telegram.NewClient(apiID, apiHash, telegram.Options{
+		UpdateHandler:  dispatcher,
+		SessionStorage: sessionStorage,
+		Device: telegram.DeviceConfig{
+			DeviceModel:   "CineWinx",
+			SystemVersion: "Fiber",
+			AppVersion:    "1.0",
+		},
+	})
+
+	var qrURL string
+	err := client.Run(ctx, func(ctx context.Context) error {
+		_, err := client.QR().Auth(ctx, qrlogin.OnLoginToken(dispatcher), func(ctx context.Context, token qrlogin.Token) error {
+			qrURL = token.URL()
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		log.Error("feiled to generate QR Code", zap.Error(err))
+		return "", errors.New("failed to generate QR Code")
+	}
+
+	log.Info("QR Code session generated successfully", zap.String("qr_url", qrURL))
+	return qrURL, nil
 }
