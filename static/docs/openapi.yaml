@@ -1,0 +1,409 @@
+openapi: 3.1.0
+info:
+  title: GoWinx API
+  version: 0.0.1
+  description: |
+    ## About
+    This is the API documentation for the CineWinx system. The API is used to streaming movies and series. Using this API telegram channel.
+
+    ## Authentication
+    The API uses JWT for authentication. To authenticate, you must send the `Authorization` header with the value `Bearer <token>`. The token is obtained by signing in to the system.
+
+    ### Postman Post-Request Script
+    You can use the following code to get a token in Postman:
+    ```js
+    var responseData = pm.response.json();
+    var token = responseData.auth.access_token;
+    pm.environment.set("bearerToken", token);
+    ```
+
+    <!-- ReDoc-Inject: <security-definitions> -->
+  x-logo:
+    url: 'https://raw.githubusercontent.com/gabrielmaialva33/cinewinx-api/refs/heads/main/.github/assets/logo.jpg'
+    altText: Logo
+  contact:
+    name: Gabriel M.
+    email: gabrielmaialva33@gmail.com
+    url: https://github.com/gabrielmaialva33
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+servers:
+  - url: http://localhost:8080
+    description: Local server
+tags:
+  - name: Health
+    description: Operations related to system health
+  - name: Post
+    description: Operations related to posts
+paths:
+  /api/v1/health:
+    get:
+      summary: Health Check
+      description: Returns the system health status and detailed checks.
+      tags:
+        - Health
+      parameters:
+        - name: Content-Type
+          in: header
+          required: true
+          schema:
+            type: string
+            example: application/json
+      responses:
+        '200':
+          description: System health information.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthCheck'
+
+  # posts
+  /api/v1/posts:
+    get:
+      summary: Paginate posts
+      description: Returns a list of posts of the movies.
+      operationId: paginate.posts
+      tags:
+        - Post
+      parameters:
+        - name: Content-Type
+          in: header
+          required: true
+          schema:
+            type: string
+            example: application/json
+        - name: per_page
+          in: query
+          required: false
+          schema:
+            type: number
+            example: 10
+        - name: offset_id
+          in: query
+          required: false
+          schema:
+            type: number
+            example: 0
+      responses:
+        '200':
+          description: A list of posts of the movies.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  posts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Post'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+components:
+  securitySchemes:
+    bearerToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    # errors
+    Unauthorized:
+      type: object
+      properties:
+        status:
+          type: number
+          description: The status code of the error.
+          example: 401
+        message:
+          type: string
+          description: The error message.
+          example: Invalid user credentials
+    NotFound:
+      type: object
+      properties:
+        status:
+          type: number
+          description: The status code of the error.
+          example: 404
+        message:
+          type: string
+          description: The error message.
+          example: Entity not found
+    UnprocessableEntity:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              message:
+                type: string
+                description: The error message.
+                example: The email has already been taken
+              rule:
+                type: string
+                description: The rule that was broken.
+                example: database.unique
+              field:
+                type: string
+                description: The field that caused the error.
+                example: email
+            example:
+              - {
+                'message': 'The email has already been taken',
+                'rule': 'database.unique',
+                'field': 'email',
+              }
+              - {
+                'message': 'The username has already been taken',
+                'rule': 'database.unique',
+                'field': 'username',
+              }
+
+    # health schemas
+    HealthCheck:
+      type: object
+      properties:
+        is_healthy:
+          type: boolean
+          description: The health status of the system.
+          example: true
+        debug_info:
+          type: object
+          properties:
+            pid:
+              type: number
+              description: The process ID of the system.
+              example: 65779
+            ppid:
+              type: number
+              description: The parent process ID of the system.
+              example: 65773
+            sys_platform:
+              type: string
+              description: The system platform of the system.
+              example: darwin
+            uptime:
+              type: number
+              description: The uptime of the system.
+              example: 1733355008.0
+            now:
+              type: string
+              format: date-time
+              description: The current date and time of the system.
+              example: 2024-12-05T08:26:01.740752
+      example: {
+        'is_healthy': true,
+        'debug_info': {
+          'pid': 65779,
+          'ppid': 65773,
+          'sys_platform': 'darwin',
+          'uptime': 1733355008.0,
+          'now': '2024-12-05T08:26:01.740752',
+        },
+      }
+
+    # movie schemas
+    Movie:
+      type: object
+      properties:
+        title:
+          type: string
+          description: The title of the movie.
+          example: Fúria Sem Limites
+        release_date:
+          type: string
+          description: The release date of the movie.
+          example: 2022
+        country_of_origin:
+          type: array
+          items:
+            type: string
+          description: The country of origin of the movie.
+          example: [ Japão ]
+        flags_of_origin:
+          type: array
+          items:
+            type: string
+          description: The flags of the country of origin of the movie.
+          example: [ 🇯🇵 ]
+        directors:
+          type: array
+          items:
+            type: string
+          description: The directors of the movie.
+          example: [ YoshikiTakahashi ]
+        writers:
+          type: array
+          items:
+            type: string
+          description: The writers of the movie.
+          example: [ ]
+        cast:
+          type: array
+          items:
+            type: string
+          description: The cast of the movie.
+          example: [ YohtaKawase, RyujuKobayashi, EitaOkuno, AyaSaiki, ShingoMizusawa ]
+        languages:
+          type: array
+          items:
+            type: string
+          description: The languages of the movie.
+          example: [ Português ]
+        flags_of_language:
+          type: array
+          items:
+            type: string
+          description: The flags of the languages of the movie.
+          example: [ 🇧🇷 ]
+        subtitles:
+          type: array
+          items:
+            type: string
+          description: The subtitles of the movie.
+          example: [ ]
+        flags_of_subtitles:
+          type: array
+          items:
+            type: string
+          description: The flags of the subtitles of the movie.
+          example: [ ]
+        genres:
+          type: array
+          items:
+            type: string
+          description: The genres of the movie.
+          example: [ Ação, Drama, Thriller, Mistério, CinemaJaponês ]
+        tags:
+          type: array
+          items:
+            type: string
+          description: The tags of the movie.
+          example: [ ]
+        synopsis:
+          type: string
+          description: The synopsis of the movie.
+          example: Fukama é um detetive japonês conhecido por perder o controle quando sente raiva. Após um tratamento no exterior, ele retorna ao Japão e encontra sua cidade protegida por um grupo de vigilantes. Ao descobrir segredos obscuros sobre o grupo, Fukama percebe que sua raiva será colocada à prova mais uma vez.
+        curiosities:
+          type: string
+          description: The curiosities of the movie.
+          example: null
+      example:
+        {
+          'title': 'Fúria Sem Limites',
+          'release_date': '2022',
+          'country_of_origin': [ 'Japão' ],
+          'flags_of_origin': [ '🇯🇵' ],
+          'directors': [ 'YoshikiTakahashi' ],
+          'writers': [ ],
+          'cast': [ 'YohtaKawase', 'RyujuKobayashi', 'EitaOkuno', 'AyaSaiki', 'ShingoMizusawa' ],
+          'languages': [ 'Português' ],
+          'flags_of_language': [ '🇧🇷' ],
+          'subtitles': [ ],
+          'flags_of_subtitles': [ ],
+          'genres': [ 'Ação', 'Drama', 'Thriller', 'Mistério', 'CinemaJaponês' ],
+          'tags': [ ],
+          'synopsis': 'Fukama é um detetive japonês conhecido por perder o controle quando sente raiva. Após um tratamento no exterior, ele retorna ao Japão e encontra sua cidade protegida por um grupo de vigilantes. Ao descobrir segredos obscuros sobre o grupo, Fukama percebe que sua raiva será colocada à prova mais uma vez.',
+          'curiosities': null,
+        }
+    Post:
+      type: object
+      properties:
+        image_url:
+          type: string
+          description: The URL of the image.
+          example: http://localhost:3333/posts/images?message_id=7188
+        video_url:
+          type: string
+          description: The URL of the video.
+          example: 'http://localhost:3333/posts/stream?document_id=5044457385712682420'
+        grouped_id:
+          type: string
+          description: The grouped ID of the post.
+          example: 13864104313698361
+        message_id:
+          type: number
+          format: int64
+          description: The message ID of the post.
+          example: 7188
+        date:
+          type: number
+          format: int64
+          description: The date of the post.
+          example: 1733013039
+        author:
+          type: string
+          description: The author of the post.
+          example: S̶̼̯͒̆̃͑̆r̷̢̖̥̞̱͚̮̦͚͐͐̀͐ͅ.̷̖̂̾N̵̏̄ ͔͙̭̯̰̖̌̚
+        reactions:
+          type: array
+          items:
+            type: object
+            properties:
+              reaction:
+                type: string
+                description: The reaction.
+                example: 👍
+              count:
+                type: number
+                format: int64
+                description: The count of the reaction.
+                example: 2
+        original_content:
+          type: string
+          description: The original content of the post.
+          example: '📺 Fúria Sem Limites #2022y\n\nPais de Origem: Japão 🇯🇵\nDireção: #YoshikiTakahashi\nElenco: #YohtaKawase'
+        parsed_content:
+          $ref: '#/components/schemas/Movie'
+
+    # pagination schemas
+    Pagination:
+      type: object
+      properties:
+        total:
+          type: number
+          description: The total number of items.
+          example: 0
+        limit:
+          type: number
+          description: The limit of items per page.
+          example: 10
+        offset_id:
+          type: number
+          description: The offset ID of the items.
+          example: 0
+        last_offset_id:
+          type: number
+          description: The last offset ID of the items.
+          example: 0
+        offset_date:
+          type: string
+          format: date-time
+          description: The offset date of the items.
+          example: null
+        add_offset:
+          type: number
+          description: The additional offset of the items.
+          example: 0
+        max_id:
+          type: number
+          description: The maximum ID of the items.
+          example: 0
+        min_id:
+          type: number
+          description: The minimum ID of the items.
+          example: 0
+      example:
+        {
+          'total': 0,
+          'limit': 10,
+          'offset_id': 0,
+          'last_offset_id': 0,
+          'offset_date': null,
+          'add_offset': 0,
+          'max_id': 0,
+          'min_id': 0,
+        }

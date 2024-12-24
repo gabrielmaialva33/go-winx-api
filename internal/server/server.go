@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-
 	"log"
 
 	"go-winx-api/config"
@@ -22,6 +21,8 @@ func NewServer(log *zap.Logger) *Server {
 	app := fiber.New()
 
 	app.Use(middleware.RequestLogger(log))
+
+	app.Static("/", "./static")
 
 	routes.SetupRoutes(app, log)
 
