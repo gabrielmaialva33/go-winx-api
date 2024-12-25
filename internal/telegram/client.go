@@ -52,6 +52,7 @@ func InitClient(log *zap.Logger) (*gotgproto.Client, error) {
 		log.Sugar().Infof("client started, username: %s", result.client.Self.Username)
 
 		TgClient = result.client
+
 		return result.client, nil
 	}
 }
