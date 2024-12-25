@@ -14,6 +14,8 @@ import (
 var TgClient *gotgproto.Client
 
 func InitClient(log *zap.Logger) (*gotgproto.Client, error) {
+	log = log.Named("client")
+
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 
@@ -47,7 +49,7 @@ func InitClient(log *zap.Logger) (*gotgproto.Client, error) {
 			return nil, result.err
 		}
 
-		log.Info("client started, username: " + result.client.Self.Username)
+		log.Sugar().Infof("client started, username: %s", result.client.Self.Username)
 
 		TgClient = result.client
 		return result.client, nil
