@@ -30,8 +30,11 @@ type config struct {
 
 func (c *config) loadFromEnvFile(log *zap.Logger) {
 	envPath := filepath.Clean(".env")
-	log.Sugar().Infof("Trying to load ENV vars from %s", envPath)
+	log.Sugar().Infof("trying to load ENV vars from %s", envPath)
 	err := godotenv.Load(envPath)
+
+	c.StringSessions = strings.Split(os.Getenv("STRING_SESSIONS"), ",")
+
 	if err != nil {
 		if os.IsNotExist(err) {
 			log.Sugar().Errorf("ENV file not found: %s", envPath)

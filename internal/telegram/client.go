@@ -8,13 +8,12 @@ import (
 
 	"github.com/celestix/gotgproto"
 	"github.com/celestix/gotgproto/sessionMaker"
-	"github.com/gofiber/fiber/v2/log"
 	"go.uber.org/zap"
 )
 
 var TgClient *gotgproto.Client
 
-func InitClient() (*gotgproto.Client, error) {
+func InitClient(log *zap.Logger) (*gotgproto.Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 
@@ -48,7 +47,7 @@ func InitClient() (*gotgproto.Client, error) {
 			return nil, result.err
 		}
 
-		log.Info("client started", zap.String("username", result.client.Self.Username))
+		log.Info("client started, username: " + result.client.Self.Username)
 
 		TgClient = result.client
 		return result.client, nil
