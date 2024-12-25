@@ -23,7 +23,7 @@ func InitClient() (*gotgproto.Client, error) {
 		err    error
 	})
 
-	session := sessionMaker.TelethonSession(config.ValueOf.UserSession).Name("main.session")
+	session := sessionMaker.TelethonSession(config.ValueOf.UserSession).Name("main")
 	go func(ctx context.Context) {
 		client, err := gotgproto.NewClient(
 			config.ValueOf.ApiId,
