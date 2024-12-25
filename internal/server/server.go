@@ -34,7 +34,7 @@ func NewServer(log *zap.Logger) *Server {
 
 func (s *Server) Start() {
 	port := fmt.Sprintf(":%d", config.ValueOf.Port)
-	s.Log.Sugar().Infof("Server is running at %s", port)
+	s.Log.Sugar().Infof("server is running at %s", port)
 	if err := s.App.Listen(port); err != nil {
 		log.Fatalf("fiber app failed to start: %v", err)
 	}

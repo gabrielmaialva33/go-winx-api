@@ -1,32 +1,27 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
-	"go-winx-api/cmd"
 	"go-winx-api/config"
+	"go-winx-api/internal/server"
 	"go-winx-api/internal/utils"
 
-	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 )
-
-var rootCmd *cobra.Command
-
-func init() {
-	utils.InitLogger()
-	log := utils.Logger
-
-	rootCmd = cmd.NewRootCommand()
-	config.Load(log, rootCmd)
-
-}
 
 func main() {
 
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+	utils.InitLogger()
+	log := utils.Logger
+
+	logger := log.Named("main")
+	logger.Info("starting server")
+
+	config.Load(log)
+
+	logger.Info("server started", zap.Int("port", config.ValueOf.Port))
+	logger.Sugar().Infof("server is running at %s", config.ValueOf.Host)
+
+	s := server.NewServer(log)
+	s.Start()
 
 }

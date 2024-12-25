@@ -7,9 +7,7 @@ import (
 
 func GetAllPosts(log *zap.Logger) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		log.Info("Fetching all posts")
-		return c.JSON(fiber.Map{
-			"message": "Get all posts",
-		})
+		log.Info("Get all posts")
+		return c.SendString("Get all posts")
 	}
 }
