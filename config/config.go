@@ -19,7 +19,7 @@ type config struct {
 	ApiId          int      `envconfig:"API_ID" required:"true"`
 	ApiHash        string   `envconfig:"API_HASH" required:"true"`
 	BotToken       string   `envconfig:"BOT_TOKEN" required:"true"`
-	ChannelID      int64    `envconfig:"CHANNEL_ID" required:"true"`
+	ChannelId      int64    `envconfig:"CHANNEL_ID" required:"true"`
 	Port           int      `envconfig:"PORT" default:"8080"`
 	Host           string   `envconfig:"HOST" default:""`
 	HashLength     int      `envconfig:"HASH_LENGTH" default:"6"`
@@ -77,7 +77,7 @@ func Load(log *zap.Logger) {
 	log = log.Named("config")
 	defer log.Info("loaded config")
 	ValueOf.setupEnvVars(log)
-	ValueOf.ChannelID = int64(stripInt(log, int(ValueOf.ChannelID)))
+	ValueOf.ChannelId = int64(stripInt(log, int(ValueOf.ChannelId)))
 	if ValueOf.HashLength == 0 {
 		log.Sugar().Info("HASH_LENGTH can't be 0, defaulting to 6")
 		ValueOf.HashLength = 6
