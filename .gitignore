@@ -39,4 +39,9 @@ sessons/
 
 # logs folder
 logs/
+!logs/.gitignore
 *.log
+
+# bin folder
+bin/
+!bin/.gitignore
