@@ -1,10 +1,11 @@
 package utils
 
 import (
-	"go-winx-api/internal/models"
 	"regexp"
 	"strings"
 	"unicode"
+
+	"go-winx-api/internal/models"
 )
 
 // FieldDefinition struct to define a field and its processing

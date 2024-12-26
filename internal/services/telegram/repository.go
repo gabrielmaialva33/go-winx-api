@@ -3,14 +3,16 @@ package telegram
 import (
 	"context"
 	"errors"
-	"github.com/celestix/gotgproto"
-	"github.com/celestix/gotgproto/storage"
-	"github.com/gotd/td/tg"
+	"sort"
+
 	"go-winx-api/config"
 	"go-winx-api/internal/models"
 	"go-winx-api/internal/utils"
+
+	"github.com/celestix/gotgproto"
+	"github.com/celestix/gotgproto/storage"
+	"github.com/gotd/td/tg"
 	"go.uber.org/zap"
-	"sort"
 )
 
 type Repository struct {
