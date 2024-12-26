@@ -3,7 +3,6 @@ package telegram
 import (
 	"context"
 	"errors"
-
 	"go-winx-api/config"
 
 	"github.com/celestix/gotgproto"
@@ -19,7 +18,7 @@ type Repository struct {
 }
 
 func NewRepository(client *gotgproto.Client, logger *zap.Logger) *Repository {
-	channel, err := GetChannelPeer(context.Background(), client)
+	channel, err := GetInputChannel(context.Background(), client)
 	if err != nil {
 		logger.Error("failed to get channel peer", zap.Error(err))
 		return nil
@@ -32,11 +31,12 @@ func NewRepository(client *gotgproto.Client, logger *zap.Logger) *Repository {
 	}
 }
 
-func (r *Repository) GetHistory(ctx context.Context) ([]*tg.Message, error) {
+func (r *Repository) GetHistory(ctx context.Context, limit int, offsetID int) ([]*tg.Message, error) {
 	peerClass := r.client.PeerStorage.GetInputPeerById(config.ValueOf.ChannelId)
 	history, err := r.client.API().MessagesGetHistory(ctx, &tg.MessagesGetHistoryRequest{
-		Peer:  peerClass,
-		Limit: 10,
+		Peer:     peerClass,
+		Limit:    limit,
+		OffsetID: offsetID,
 	})
 	if err != nil {
 		r.logger.Error("failed to get history", zap.Error(err))
@@ -44,32 +44,6 @@ func (r *Repository) GetHistory(ctx context.Context) ([]*tg.Message, error) {
 	}
 
 	var messages []*tg.Message
-
-	//switch messages := history.(type) {
-	//case *tg.MessagesMessages:
-	//	for _, msg := range messages.GetMessages() {
-	//		if message, ok := msg.(*tg.Message); ok {
-	//			r.logger.Info("Message received", zap.Int("id", message.ID), zap.String("text", message.Message))
-	//			r.logger.Info("Message group id", zap.Int64("group_id", message.GroupedID))
-	//		}
-	//	}
-	//case *tg.MessagesMessagesSlice:
-	//	for _, msg := range messages.GetMessages() {
-	//		if message, ok := msg.(*tg.Message); ok {
-	//			r.logger.Info("Message received", zap.Int("id", message.ID), zap.String("text", message.Message))
-	//			r.logger.Info("Message group id", zap.Int64("group_id", message.GroupedID))
-	//		}
-	//	}
-	//case *tg.MessagesChannelMessages:
-	//	for _, msg := range messages.GetMessages() {
-	//		if message, ok := msg.(*tg.Message); ok {
-	//			r.logger.Info("Message received", zap.Int("id", message.ID), zap.String("text", message.Message))
-	//			r.logger.Info("Message group id", zap.Int64("group_id", message.GroupedID))
-	//		}
-	//	}
-	//default:
-	//	r.logger.Warn("Unexpected response type for MessagesGetHistory", zap.Any("type", messages))
-	//}
 
 	switch result := history.(type) {
 	case *tg.MessagesChannelMessages:
@@ -84,7 +58,20 @@ func (r *Repository) GetHistory(ctx context.Context) ([]*tg.Message, error) {
 
 }
 
-func GetChannelPeer(ctx context.Context, client *gotgproto.Client) (*tg.InputChannel, error) {
+func groupMessagesByGroupedID(messages []*tg.Message) map[int64][]*tg.Message {
+	groupedMessages := make(map[int64][]*tg.Message)
+
+	for _, msg := range messages {
+		if msg.GroupedID != 0 {
+			groupID := msg.GroupedID
+			groupedMessages[groupID] = append(groupedMessages[groupID], msg)
+		}
+	}
+
+	return groupedMessages
+}
+
+func GetInputChannel(ctx context.Context, client *gotgproto.Client) (*tg.InputChannel, error) {
 	peerClass := client.PeerStorage.GetInputPeerById(config.ValueOf.ChannelId)
 
 	switch peer := peerClass.(type) {
