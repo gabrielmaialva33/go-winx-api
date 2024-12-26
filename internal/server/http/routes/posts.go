@@ -13,4 +13,6 @@ func registerPostRoutes(app *fiber.App, log *zap.Logger, repository *telegram.Re
 
 	api.Get("/posts", handlers.GetAllPosts(log, repository))
 	api.Get("/posts/:message_id", handlers.GetPost(log, repository))
+	api.Get("/posts/images/:message_id", handlers.GetPostImage(log, repository))
+
 }

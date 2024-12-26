@@ -3,6 +3,9 @@ package telegram
 import (
 	"context"
 	"errors"
+	"fmt"
+	"github.com/gotd/td/telegram/downloader"
+	"io"
 	"sort"
 
 	"go-winx-api/config"
@@ -201,6 +204,78 @@ func (r *Repository) GetPost(ctx context.Context, messageID int) (*models.Post, 
 	return post, nil
 }
 
+func (r *Repository) StreamImage(ctx context.Context, messageID int, output io.Writer) error {
+	peerClass := r.client.PeerStorage.GetInputPeerById(config.ValueOf.ChannelId)
+	if peerClass == nil {
+		r.logger.Error("Channel not configured in PeerStorage")
+		return errors.New("channel not configured")
+	}
+
+	inputChannel, ok := peerClass.(*tg.InputPeerChannel)
+	if !ok {
+		r.logger.Error("Invalid channel type in PeerStorage")
+		return errors.New("invalid channel type")
+	}
+
+	req := &tg.ChannelsGetMessagesRequest{
+		Channel: &tg.InputChannel{
+			ChannelID:  inputChannel.ChannelID,
+			AccessHash: inputChannel.AccessHash,
+		},
+		ID: []tg.InputMessageClass{
+			&tg.InputMessageID{ID: messageID},
+		},
+	}
+
+	result, err := r.client.API().ChannelsGetMessages(ctx, req)
+	if err != nil {
+		r.logger.Error("Failed to fetch the message", zap.Error(err))
+		return fmt.Errorf("failed to fetch the message: %w", err)
+	}
+
+	var photo *tg.Photo
+	switch msg := result.(type) {
+	case *tg.MessagesChannelMessages:
+		for _, message := range msg.Messages {
+			if telegramMsg, ok := message.(*tg.Message); ok && telegramMsg.Media != nil {
+				if media, ok := telegramMsg.Media.(*tg.MessageMediaPhoto); ok && media.Photo != nil {
+					if p, ok := media.Photo.(*tg.Photo); ok {
+						photo = p
+						break
+					}
+				}
+			}
+		}
+	}
+
+	if photo == nil {
+		r.logger.Error("No photo found in the message")
+		return errors.New("no photo found in the message")
+	}
+
+	thumbSize := ""
+	if len(photo.Sizes) > 0 {
+		thumbSize = photo.Sizes[len(photo.Sizes)-1].GetType() // Use the highest resolution available
+	}
+
+	inputLocation := &tg.InputPhotoFileLocation{
+		ID:            photo.ID,
+		AccessHash:    photo.AccessHash,
+		FileReference: photo.FileReference,
+		ThumbSize:     thumbSize,
+	}
+
+	dl := downloader.NewDownloader()
+	fileType, err := dl.Download(r.client.API(), inputLocation).Stream(ctx, output)
+	if err != nil {
+		r.logger.Error("Failed to stream the image", zap.Error(err))
+		return fmt.Errorf("failed to stream the image: %w", err)
+	}
+
+	r.logger.Info("Image streamed successfully", zap.String("type", fmt.Sprintf("%T", fileType)))
+	return nil
+}
+
 func limitGroupsByMostRecent(groups map[int64][]*tg.Message, needed int) map[int64][]*tg.Message {
 	type groupInfo struct {
 		groupID  int64
@@ -297,10 +372,6 @@ func extractReactions(reactions tg.MessageReactions) []models.Reaction {
 		}
 	}
 	return extractedReactions
-}
-
-func extractPhotoURL(photo *tg.MessageMediaPhoto) string {
-	return "url"
 }
 
 func GetInputChannel(ctx context.Context, client *gotgproto.Client) (*tg.InputChannel, error) {

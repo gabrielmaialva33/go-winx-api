@@ -75,3 +75,32 @@ func GetPost(log *zap.Logger, repository *telegram.Repository) fiber.Handler {
 		return c.JSON(message)
 	}
 }
+
+func GetPostImage(log *zap.Logger, repository *telegram.Repository) fiber.Handler {
+	log = log.Named("stream_images")
+
+	return func(c *fiber.Ctx) error {
+		messageId, err := strconv.Atoi(c.Params("message_id"))
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Invalid 'message_id' parameter",
+			})
+		}
+
+		log.Info("Streaming image", zap.Int("message_id", messageId))
+
+		ctx := context.Background()
+
+		c.Set("Content-Type", "image/jpeg")
+		c.Set("Cache-Control", "no-cache")
+
+		if err := repository.StreamImage(ctx, messageId, c.Response().BodyWriter()); err != nil {
+			log.Error("failed to stream image", zap.Error(err))
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to stream image",
+			})
+		}
+
+		return nil
+	}
+}
