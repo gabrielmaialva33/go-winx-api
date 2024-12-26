@@ -11,9 +11,9 @@ import (
 )
 
 type Repository struct {
-	Client  *gotgproto.Client
-	Channel *tg.InputChannel
-	Logger  *zap.Logger
+	client  *gotgproto.Client
+	channel *tg.InputChannel
+	logger  *zap.Logger
 }
 
 func NewRepository(client *gotgproto.Client, logger *zap.Logger) *Repository {
@@ -24,45 +24,61 @@ func NewRepository(client *gotgproto.Client, logger *zap.Logger) *Repository {
 	}
 
 	return &Repository{
-		Client:  client,
-		Channel: channel,
-		Logger:  logger,
+		client:  client,
+		channel: channel,
+		logger:  logger,
 	}
 }
 
-func (r *Repository) GetHistory(ctx context.Context) {
-	peerClass := r.Client.PeerStorage.GetInputPeerById(config.ValueOf.ChannelID)
-	history, err := r.Client.API().MessagesGetHistory(ctx, &tg.MessagesGetHistoryRequest{
+func (r *Repository) GetHistory(ctx context.Context) ([]*tg.Message, error) {
+	peerClass := r.client.PeerStorage.GetInputPeerById(config.ValueOf.ChannelID)
+	history, err := r.client.API().MessagesGetHistory(ctx, &tg.MessagesGetHistoryRequest{
 		Peer:  peerClass,
 		Limit: 10,
 	})
 	if err != nil {
-		r.Logger.Error("failed to get history", zap.Error(err))
-		return
+		r.logger.Error("failed to get history", zap.Error(err))
+		return nil, err
 	}
 
-	switch messages := history.(type) {
-	case *tg.MessagesMessages:
-		for _, msg := range messages.GetMessages() {
-			if message, ok := msg.(*tg.Message); ok {
-				r.Logger.Info("Message received", zap.Int("id", message.ID), zap.String("text", message.Message))
-			}
-		}
-	case *tg.MessagesMessagesSlice:
-		for _, msg := range messages.GetMessages() {
-			if message, ok := msg.(*tg.Message); ok {
-				r.Logger.Info("Message received", zap.Int("id", message.ID), zap.String("text", message.Message))
-			}
-		}
+	var messages []*tg.Message
+
+	//switch messages := history.(type) {
+	//case *tg.MessagesMessages:
+	//	for _, msg := range messages.GetMessages() {
+	//		if message, ok := msg.(*tg.Message); ok {
+	//			r.logger.Info("Message received", zap.Int("id", message.ID), zap.String("text", message.Message))
+	//			r.logger.Info("Message group id", zap.Int64("group_id", message.GroupedID))
+	//		}
+	//	}
+	//case *tg.MessagesMessagesSlice:
+	//	for _, msg := range messages.GetMessages() {
+	//		if message, ok := msg.(*tg.Message); ok {
+	//			r.logger.Info("Message received", zap.Int("id", message.ID), zap.String("text", message.Message))
+	//			r.logger.Info("Message group id", zap.Int64("group_id", message.GroupedID))
+	//		}
+	//	}
+	//case *tg.MessagesChannelMessages:
+	//	for _, msg := range messages.GetMessages() {
+	//		if message, ok := msg.(*tg.Message); ok {
+	//			r.logger.Info("Message received", zap.Int("id", message.ID), zap.String("text", message.Message))
+	//			r.logger.Info("Message group id", zap.Int64("group_id", message.GroupedID))
+	//		}
+	//	}
+	//default:
+	//	r.logger.Warn("Unexpected response type for MessagesGetHistory", zap.Any("type", messages))
+	//}
+
+	switch result := history.(type) {
 	case *tg.MessagesChannelMessages:
-		for _, msg := range messages.GetMessages() {
-			if message, ok := msg.(*tg.Message); ok {
-				r.Logger.Info("Message received", zap.Int("id", message.ID), zap.String("text", message.Message))
+		for _, msg := range result.Messages {
+			if m, ok := msg.(*tg.Message); ok {
+				messages = append(messages, m)
 			}
 		}
-	default:
-		r.Logger.Warn("Unexpected response type for MessagesGetHistory", zap.Any("type", messages))
 	}
+
+	return messages, nil
 
 }
 

@@ -9,11 +9,16 @@ import (
 )
 
 func GetAllPosts(log *zap.Logger, repository *telegram.Repository) fiber.Handler {
+	log = log.Named("posts")
+	log.Sugar().Info("registering posts routes")
+
 	ctx := context.Background()
-	repository.GetHistory(ctx)
+	messages, err := repository.GetHistory(ctx)
+	if err != nil {
+		return nil
+	}
 
 	return func(c *fiber.Ctx) error {
-		log.Info("Get all posts")
-		return c.JSON(fiber.Map{"message": "Get all posts"})
+		return c.JSON(messages)
 	}
 }
