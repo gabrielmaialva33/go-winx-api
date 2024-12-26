@@ -207,13 +207,13 @@ func (r *Repository) GetPost(ctx context.Context, messageID int) (*models.Post, 
 func (r *Repository) StreamImage(ctx context.Context, messageID int, output io.Writer) error {
 	peerClass := r.client.PeerStorage.GetInputPeerById(config.ValueOf.ChannelId)
 	if peerClass == nil {
-		r.logger.Error("Channel not configured in PeerStorage")
+		r.logger.Error("channel not configured in PeerStorage")
 		return errors.New("channel not configured")
 	}
 
 	inputChannel, ok := peerClass.(*tg.InputPeerChannel)
 	if !ok {
-		r.logger.Error("Invalid channel type in PeerStorage")
+		r.logger.Error("invalid channel type in PeerStorage")
 		return errors.New("invalid channel type")
 	}
 
@@ -229,7 +229,7 @@ func (r *Repository) StreamImage(ctx context.Context, messageID int, output io.W
 
 	result, err := r.client.API().ChannelsGetMessages(ctx, req)
 	if err != nil {
-		r.logger.Error("Failed to fetch the message", zap.Error(err))
+		r.logger.Error("failed to fetch the message", zap.Error(err))
 		return fmt.Errorf("failed to fetch the message: %w", err)
 	}
 
@@ -249,13 +249,13 @@ func (r *Repository) StreamImage(ctx context.Context, messageID int, output io.W
 	}
 
 	if photo == nil {
-		r.logger.Error("No photo found in the message")
+		r.logger.Error("no photo found in the message")
 		return errors.New("no photo found in the message")
 	}
 
 	thumbSize := ""
 	if len(photo.Sizes) > 0 {
-		thumbSize = photo.Sizes[len(photo.Sizes)-1].GetType() // Use the highest resolution available
+		thumbSize = photo.Sizes[len(photo.Sizes)-1].GetType()
 	}
 
 	inputLocation := &tg.InputPhotoFileLocation{
@@ -266,13 +266,12 @@ func (r *Repository) StreamImage(ctx context.Context, messageID int, output io.W
 	}
 
 	dl := downloader.NewDownloader()
-	fileType, err := dl.Download(r.client.API(), inputLocation).Stream(ctx, output)
+	_, err = dl.Download(r.client.API(), inputLocation).Stream(ctx, output)
 	if err != nil {
-		r.logger.Error("Failed to stream the image", zap.Error(err))
+		r.logger.Error("failed to stream the image", zap.Error(err))
 		return fmt.Errorf("failed to stream the image: %w", err)
 	}
 
-	r.logger.Info("Image streamed successfully", zap.String("type", fmt.Sprintf("%T", fileType)))
 	return nil
 }
 
