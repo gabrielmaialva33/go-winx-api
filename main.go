@@ -2,8 +2,8 @@ package main
 
 import (
 	"go-winx-api/config"
-	"go-winx-api/internal/server"
-	"go-winx-api/internal/telegram"
+	"go-winx-api/internal/server/http"
+	"go-winx-api/internal/services/telegram"
 	"go-winx-api/internal/utils"
 
 	"go.uber.org/zap"
@@ -39,7 +39,7 @@ func main() {
 
 	repository := telegram.NewRepository(client, log)
 
-	s := server.NewServer(log, repository)
+	s := http.NewServer(log, repository)
 	s.Start()
 
 }
