@@ -45,3 +45,6 @@ logs/
 # bin folder
 bin/
 !bin/.gitignore
+
+# venv folder
+.venv/
