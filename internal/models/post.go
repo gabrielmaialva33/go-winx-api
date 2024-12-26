@@ -14,7 +14,7 @@ type Post struct {
 	Author          string     `json:"author,omitempty"`
 	Reactions       []Reaction `json:"reactions,omitempty"`
 	OriginalContent string     `json:"original_content"`
-	ParsedContent   *MovieData `json:"parsed_content"`
+	ParsedContent   MovieData  `json:"parsed_content"`
 	DocumentID      int64      `json:"document_id,omitempty"`
 	DocumentSize    int64      `json:"document_size,omitempty"`
 	MessageDocID    int64      `json:"message_doc_id,omitempty"`
