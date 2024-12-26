@@ -7,6 +7,7 @@ import (
 	"unicode"
 )
 
+// FieldDefinition struct to define a field and its processing
 type FieldDefinition struct {
 	Field       string
 	Labels      []string
@@ -150,10 +151,14 @@ func ProcessMultiline(match []string, data *models.MovieData, buffer *[]string) 
 // Helper functions
 func splitAndTrim(input, sep string) []string {
 	parts := strings.Split(input, sep)
-	for i, part := range parts {
-		parts[i] = strings.TrimSpace(part)
+	var result []string
+	for _, part := range parts {
+		trimmed := strings.TrimSpace(part)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
 	}
-	return parts
+	return result
 }
 
 var nonDigitRegex = regexp.MustCompile(`\D`)
