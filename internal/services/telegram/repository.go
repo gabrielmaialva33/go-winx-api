@@ -3,14 +3,13 @@ package telegram
 import (
 	"context"
 	"errors"
-	"go-winx-api/config"
-	"go-winx-api/internal/models"
-	"sort"
-
 	"github.com/celestix/gotgproto"
 	"github.com/celestix/gotgproto/storage"
 	"github.com/gotd/td/tg"
+	"go-winx-api/config"
+	"go-winx-api/internal/models"
 	"go.uber.org/zap"
+	"sort"
 )
 
 type Repository struct {
@@ -89,7 +88,11 @@ func createPostFromMessages(messages []*tg.Message) *models.Post {
 	if info != nil {
 		post := &models.Post{
 			MessageID:       info.ID,
+			GroupedID:       info.GroupedID,
+			Date:            info.Date,
+			Author:          info.PostAuthor,
 			OriginalContent: info.Message,
+			Reactions:       extractReactions(info.Reactions),
 			ParsedContent:   nil,
 		}
 		if media != nil {
@@ -101,6 +104,24 @@ func createPostFromMessages(messages []*tg.Message) *models.Post {
 	}
 
 	return nil
+}
+
+func extractReactions(reactions tg.MessageReactions) []models.Reaction {
+	var extractedReactions []models.Reaction
+	if len(reactions.Results) == 0 {
+		return extractedReactions
+	}
+
+	for _, reaction := range reactions.Results {
+		if emoji, ok := reaction.Reaction.(*tg.ReactionEmoji); ok {
+			extractedReactions = append(extractedReactions, models.Reaction{
+				Reaction: emoji.Emoticon,
+				Count:    reaction.Count,
+			})
+		}
+	}
+
+	return extractedReactions
 }
 
 func extractPhotoURL(photo *tg.MessageMediaPhoto) string {

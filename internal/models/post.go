@@ -10,7 +10,7 @@ type Post struct {
 	VideoURL        string                 `json:"video_url,omitempty"`
 	GroupedID       int64                  `json:"grouped_id,omitempty"`
 	MessageID       int                    `json:"message_id"`
-	Date            string                 `json:"date"`
+	Date            int                    `json:"date"`
 	Author          string                 `json:"author,omitempty"`
 	Reactions       []Reaction             `json:"reactions,omitempty"`
 	OriginalContent string                 `json:"original_content"`
