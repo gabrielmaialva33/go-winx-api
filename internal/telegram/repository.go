@@ -30,9 +30,40 @@ func NewRepository(client *gotgproto.Client, logger *zap.Logger) *Repository {
 	}
 }
 
-func (r *Repository) GetHistory() error {
-	// do something
-	return nil
+func (r *Repository) GetHistory(ctx context.Context) {
+	peerClass := r.Client.PeerStorage.GetInputPeerById(config.ValueOf.ChannelID)
+	history, err := r.Client.API().MessagesGetHistory(ctx, &tg.MessagesGetHistoryRequest{
+		Peer:  peerClass,
+		Limit: 10,
+	})
+	if err != nil {
+		r.Logger.Error("failed to get history", zap.Error(err))
+		return
+	}
+
+	switch messages := history.(type) {
+	case *tg.MessagesMessages:
+		for _, msg := range messages.GetMessages() {
+			if message, ok := msg.(*tg.Message); ok {
+				r.Logger.Info("Message received", zap.Int("id", message.ID), zap.String("text", message.Message))
+			}
+		}
+	case *tg.MessagesMessagesSlice:
+		for _, msg := range messages.GetMessages() {
+			if message, ok := msg.(*tg.Message); ok {
+				r.Logger.Info("Message received", zap.Int("id", message.ID), zap.String("text", message.Message))
+			}
+		}
+	case *tg.MessagesChannelMessages:
+		for _, msg := range messages.GetMessages() {
+			if message, ok := msg.(*tg.Message); ok {
+				r.Logger.Info("Message received", zap.Int("id", message.ID), zap.String("text", message.Message))
+			}
+		}
+	default:
+		r.Logger.Warn("Unexpected response type for MessagesGetHistory", zap.Any("type", messages))
+	}
+
 }
 
 func GetChannelPeer(ctx context.Context, client *gotgproto.Client) (*tg.InputChannel, error) {
