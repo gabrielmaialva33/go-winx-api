@@ -71,7 +71,6 @@ func (r *Repository) GroupedPosts(ctx context.Context, pagination models.Paginat
 	maxLoops := 30
 
 	for len(groupedMessages) < totalGroupsNeeded && maxLoops > 0 {
-
 		currentLimit := max(20, limit*2)
 
 		allMessages, err := r.GetHistory(ctx, currentLimit, offsetID)
@@ -153,7 +152,6 @@ func limitGroupsByMostRecent(groups map[int64][]*tg.Message, needed int) map[int
 
 	var groupsSlice []groupInfo
 	for gID, msgs := range groups {
-
 		maxID := msgs[0].ID
 		for _, m := range msgs {
 			if m.ID > maxID {
@@ -196,7 +194,6 @@ func createPostFromMessages(messages []*tg.Message) *models.Post {
 	}
 
 	if info != nil {
-
 		parsedContent := utils.ParseMessageContent(info.Message)
 
 		post := &models.Post{
@@ -208,9 +205,14 @@ func createPostFromMessages(messages []*tg.Message) *models.Post {
 			Reactions:       extractReactions(info.Reactions),
 			ParsedContent:   parsedContent,
 		}
+
 		if media != nil {
-			if photo, ok := media.Media.(*tg.MessageMediaPhoto); ok {
-				post.ImageURL = extractPhotoURL(photo)
+			if document, ok := media.Media.(*tg.MessageMediaDocument); ok {
+				if doc, ok := document.Document.AsNotEmpty(); ok {
+					post.DocumentID = doc.ID
+					post.DocumentSize = doc.Size
+				}
+				post.DocumentMessageID = media.ID
 			}
 		}
 		return post
@@ -237,7 +239,7 @@ func extractReactions(reactions tg.MessageReactions) []models.Reaction {
 }
 
 func extractPhotoURL(photo *tg.MessageMediaPhoto) string {
-	return ""
+	return "url"
 }
 
 func GetInputChannel(ctx context.Context, client *gotgproto.Client) (*tg.InputChannel, error) {
