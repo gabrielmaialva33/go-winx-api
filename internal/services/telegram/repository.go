@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"go-winx-api/config"
+	"go-winx-api/internal/models"
+	"sort"
 
 	"github.com/celestix/gotgproto"
 	"github.com/celestix/gotgproto/storage"
@@ -31,7 +33,7 @@ func NewRepository(client *gotgproto.Client, logger *zap.Logger) *Repository {
 	}
 }
 
-func (r *Repository) GetHistory(ctx context.Context, limit int, offsetID int) ([]*tg.Message, error) {
+func (r *Repository) getHistory(ctx context.Context, limit int, offsetID int) ([]*tg.Message, error) {
 	peerClass := r.client.PeerStorage.GetInputPeerById(config.ValueOf.ChannelId)
 	history, err := r.client.API().MessagesGetHistory(ctx, &tg.MessagesGetHistoryRequest{
 		Peer:     peerClass,
@@ -69,6 +71,76 @@ func groupMessagesByGroupedID(messages []*tg.Message) map[int64][]*tg.Message {
 	}
 
 	return groupedMessages
+}
+
+func createPostFromMessages(messages []*tg.Message) *models.Post {
+	var info *tg.Message
+	var media *tg.Message
+
+	for _, msg := range messages {
+		if msg.Message != "" && info == nil {
+			info = msg
+		}
+		if msg.Media != nil && media == nil {
+			media = msg
+		}
+	}
+
+	if info != nil {
+		post := &models.Post{
+			MessageID:       info.ID,
+			OriginalContent: info.Message,
+			ParsedContent:   nil,
+		}
+		if media != nil {
+			if photo, ok := media.Media.(*tg.MessageMediaPhoto); ok {
+				post.ImageURL = extractPhotoURL(photo)
+			}
+		}
+		return post
+	}
+
+	return nil
+}
+
+func extractPhotoURL(photo *tg.MessageMediaPhoto) string {
+	return ""
+}
+
+func (r *Repository) PaginatePosts(ctx context.Context, pagination models.PaginationData) (*models.PaginatedPosts, error) {
+	limit := pagination.PerPage
+	offsetID := pagination.OffsetId
+
+	messages, err := r.getHistory(ctx, limit, offsetID)
+	if err != nil {
+		return nil, err
+	}
+
+	groupedMessages := groupMessagesByGroupedID(messages)
+
+	var posts []models.Post
+	for _, group := range groupedMessages {
+		post := createPostFromMessages(group)
+		if post != nil {
+			posts = append(posts, *post)
+		}
+	}
+
+	sort.Slice(posts, func(i, j int) bool {
+		return posts[i].MessageID > posts[j].MessageID
+	})
+
+	total := len(posts)
+	if total > 0 {
+		pagination.FirstOffsetId = posts[0].MessageID
+		pagination.LastOffsetId = posts[total-1].MessageID
+		pagination.Total = total
+	}
+
+	return &models.PaginatedPosts{
+		Data:       posts,
+		Pagination: pagination,
+	}, nil
 }
 
 func GetInputChannel(ctx context.Context, client *gotgproto.Client) (*tg.InputChannel, error) {

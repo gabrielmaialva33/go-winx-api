@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"go-winx-api/internal/models"
 	"go-winx-api/internal/services/telegram"
 	"strconv"
 
@@ -31,7 +32,12 @@ func GetAllPosts(log *zap.Logger, repository *telegram.Repository) fiber.Handler
 
 		ctx := context.Background()
 
-		messages, err := repository.GetHistory(ctx, perPage, offsetId)
+		pagination := models.PaginationData{
+			PerPage:  perPage,
+			OffsetId: offsetId,
+		}
+
+		messages, err := repository.PaginatePosts(ctx, pagination)
 		if err != nil {
 			log.Error("Failed to fetch posts", zap.Error(err))
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{

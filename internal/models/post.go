@@ -19,3 +19,8 @@ type Post struct {
 	DocumentSize    int64                  `json:"document_size,omitempty"`
 	MessageDocID    int64                  `json:"message_doc_id,omitempty"`
 }
+
+type PaginatedPosts struct {
+	Data       []Post         `json:"data"`
+	Pagination PaginationData `json:"pagination"`
+}
