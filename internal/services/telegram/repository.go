@@ -3,7 +3,6 @@ package telegram
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/celestix/gotgproto"
 	"github.com/celestix/gotgproto/storage"
 	"github.com/gotd/td/tg"
@@ -66,10 +65,6 @@ func (r *Repository) GroupedPosts(ctx context.Context, pagination models.Paginat
 
 	groupedMessages := make(map[int64][]*tg.Message)
 
-	fmt.Println("TotalGroupsNeeded:", totalGroupsNeeded)
-	fmt.Println("OffsetID:", offsetID)
-	fmt.Println("Limit:", limit)
-
 	maxLoops := 30
 
 	for len(groupedMessages) < totalGroupsNeeded && maxLoops > 0 {
@@ -110,6 +105,42 @@ func (r *Repository) GroupedPosts(ctx context.Context, pagination models.Paginat
 	return groupedMessages, nil
 }
 
+func (r *Repository) PaginatePosts(ctx context.Context, pagination models.PaginationData) (*models.PaginatedPosts, error) {
+	groupedMessages, err := r.GroupedPosts(ctx, pagination)
+	if err != nil {
+		return nil, err
+	}
+
+	var posts []models.Post
+	for _, group := range groupedMessages {
+		post := createPostFromMessages(group)
+		if post != nil {
+			posts = append(posts, *post)
+		}
+	}
+
+	sort.Slice(posts, func(i, j int) bool {
+		return posts[i].MessageID > posts[j].MessageID
+	})
+
+	total := len(posts)
+
+	if total > 0 {
+		pagination.FirstOffsetId = posts[0].MessageID
+		pagination.LastOffsetId = posts[total-1].MessageID
+		pagination.Total = total
+	} else {
+		pagination.FirstOffsetId = 0
+		pagination.LastOffsetId = 0
+		pagination.Total = 0
+	}
+
+	return &models.PaginatedPosts{
+		Data:       posts,
+		Pagination: pagination,
+	}, nil
+}
+
 func limitGroupsByMostRecent(groups map[int64][]*tg.Message, needed int) map[int64][]*tg.Message {
 	type groupInfo struct {
 		groupID  int64
@@ -146,44 +177,6 @@ func limitGroupsByMostRecent(groups map[int64][]*tg.Message, needed int) map[int
 		limited[gi.groupID] = gi.msgs
 	}
 	return limited
-}
-
-func (r *Repository) PaginatePosts(ctx context.Context, pagination models.PaginationData) (*models.PaginatedPosts, error) {
-	groupedMessages, err := r.GroupedPosts(ctx, pagination)
-	if err != nil {
-		return nil, err
-	}
-
-	var posts []models.Post
-	for _, group := range groupedMessages {
-		post := createPostFromMessages(group)
-		if post != nil {
-			posts = append(posts, *post)
-		}
-	}
-
-	sort.Slice(posts, func(i, j int) bool {
-		return posts[i].MessageID > posts[j].MessageID
-	})
-
-	fmt.Println("PerPage: ", pagination.PerPage)
-	total := len(posts)
-	fmt.Println("Total: ", total)
-
-	if total > 0 {
-		pagination.FirstOffsetId = posts[0].MessageID
-		pagination.LastOffsetId = posts[total-1].MessageID
-		pagination.Total = total
-	} else {
-		pagination.FirstOffsetId = 0
-		pagination.LastOffsetId = 0
-		pagination.Total = 0
-	}
-
-	return &models.PaginatedPosts{
-		Data:       posts,
-		Pagination: pagination,
-	}, nil
 }
 
 func createPostFromMessages(messages []*tg.Message) *models.Post {
@@ -273,11 +266,4 @@ func GetInputChannel(ctx context.Context, client *gotgproto.Client) (*tg.InputCh
 
 	client.PeerStorage.AddPeer(channel.GetID(), channel.AccessHash, storage.TypeChannel, "")
 	return channel.AsInput(), nil
-}
-
-func m(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
 }
