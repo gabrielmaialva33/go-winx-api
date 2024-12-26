@@ -3,10 +3,12 @@ package telegram
 import (
 	"context"
 	"errors"
+
+	"go-winx-api/config"
+
 	"github.com/celestix/gotgproto"
 	"github.com/celestix/gotgproto/storage"
 	"github.com/gotd/td/tg"
-	"go-winx-api/config"
 	"go.uber.org/zap"
 )
 
@@ -31,7 +33,7 @@ func NewRepository(client *gotgproto.Client, logger *zap.Logger) *Repository {
 }
 
 func (r *Repository) GetHistory(ctx context.Context) ([]*tg.Message, error) {
-	peerClass := r.client.PeerStorage.GetInputPeerById(config.ValueOf.ChannelID)
+	peerClass := r.client.PeerStorage.GetInputPeerById(config.ValueOf.ChannelId)
 	history, err := r.client.API().MessagesGetHistory(ctx, &tg.MessagesGetHistoryRequest{
 		Peer:  peerClass,
 		Limit: 10,
@@ -83,7 +85,7 @@ func (r *Repository) GetHistory(ctx context.Context) ([]*tg.Message, error) {
 }
 
 func GetChannelPeer(ctx context.Context, client *gotgproto.Client) (*tg.InputChannel, error) {
-	peerClass := client.PeerStorage.GetInputPeerById(config.ValueOf.ChannelID)
+	peerClass := client.PeerStorage.GetInputPeerById(config.ValueOf.ChannelId)
 
 	switch peer := peerClass.(type) {
 	case *tg.InputPeerEmpty:
@@ -98,7 +100,7 @@ func GetChannelPeer(ctx context.Context, client *gotgproto.Client) (*tg.InputCha
 	}
 
 	inputChannel := &tg.InputChannel{
-		ChannelID: config.ValueOf.ChannelID,
+		ChannelID: config.ValueOf.ChannelId,
 	}
 	channels, err := client.API().ChannelsGetChannels(ctx, []tg.InputChannelClass{inputChannel})
 	if err != nil {

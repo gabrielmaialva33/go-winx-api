@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"context"
-	"go-winx-api/internal/telegram"
+	"go-winx-api/internal/services/telegram"
 
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"

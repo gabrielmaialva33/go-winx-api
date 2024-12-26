@@ -2,8 +2,8 @@ package routes
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"go-winx-api/internal/server/handlers"
-	"go-winx-api/internal/telegram"
+	"go-winx-api/internal/server/http/handlers"
+	"go-winx-api/internal/services/telegram"
 	"go.uber.org/zap"
 )
 
