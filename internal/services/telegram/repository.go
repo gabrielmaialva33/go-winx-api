@@ -143,6 +143,64 @@ func (r *Repository) PaginatePosts(ctx context.Context, pagination models.Pagina
 	}, nil
 }
 
+func (r *Repository) GetPost(ctx context.Context, messageID int) (*models.Post, error) {
+	peerClass := r.client.PeerStorage.GetInputPeerById(config.ValueOf.ChannelId)
+	if peerClass == nil {
+		r.logger.Error("channel not configured in PeerStorage")
+		return nil, errors.New("channel not configured")
+	}
+
+	inputChannel, ok := peerClass.(*tg.InputPeerChannel)
+	if !ok {
+		r.logger.Error("invalid channel type in PeerStorage")
+		return nil, errors.New("invalid channel type")
+	}
+
+	req := &tg.ChannelsGetMessagesRequest{
+		Channel: &tg.InputChannel{
+			ChannelID:  inputChannel.ChannelID,
+			AccessHash: inputChannel.AccessHash,
+		},
+		ID: []tg.InputMessageClass{
+			&tg.InputMessageID{ID: messageID},
+			&tg.InputMessageID{ID: messageID + 1},
+		},
+	}
+
+	result, err := r.client.API().ChannelsGetMessages(ctx, req)
+	if err != nil {
+		r.logger.Error("failed to fetch message from channel", zap.Error(err))
+		return nil, err
+	}
+
+	var messages []*tg.Message
+	switch res := result.(type) {
+	case *tg.MessagesChannelMessages:
+		for _, msg := range res.Messages {
+			if m, ok := msg.(*tg.Message); ok {
+				messages = append(messages, m)
+			}
+		}
+	default:
+		return nil, errors.New("unexpected response type from Telegram API")
+	}
+
+	if len(messages) == 0 {
+		return nil, errors.New("message not found")
+	}
+
+	sort.Slice(messages, func(i, j int) bool {
+		return messages[i].ID < messages[j].ID
+	})
+
+	post := createPostFromMessages(messages)
+	if post == nil {
+		return nil, errors.New("failed to create post from messages")
+	}
+
+	return post, nil
+}
+
 func limitGroupsByMostRecent(groups map[int64][]*tg.Message, needed int) map[int64][]*tg.Message {
 	type groupInfo struct {
 		groupID  int64
@@ -188,7 +246,7 @@ func createPostFromMessages(messages []*tg.Message) *models.Post {
 		if msg.Message != "" && info == nil {
 			info = msg
 		}
-		if msg.Media != nil && media == nil {
+		if _, isDoc := msg.Media.(*tg.MessageMediaDocument); isDoc && media == nil {
 			media = msg
 		}
 	}
@@ -208,13 +266,16 @@ func createPostFromMessages(messages []*tg.Message) *models.Post {
 
 		if media != nil {
 			if document, ok := media.Media.(*tg.MessageMediaDocument); ok {
-				if doc, ok := document.Document.AsNotEmpty(); ok {
-					post.DocumentID = doc.ID
-					post.DocumentSize = doc.Size
+				if document.Document != nil {
+					if doc, ok := document.Document.AsNotEmpty(); ok {
+						post.DocumentID = doc.ID
+						post.DocumentSize = doc.Size
+					}
+					post.DocumentMessageID = media.ID
 				}
-				post.DocumentMessageID = media.ID
 			}
 		}
+
 		return post
 	}
 

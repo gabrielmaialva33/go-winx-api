@@ -48,3 +48,30 @@ func GetAllPosts(log *zap.Logger, repository *telegram.Repository) fiber.Handler
 		return c.JSON(messages)
 	}
 }
+
+func GetPost(log *zap.Logger, repository *telegram.Repository) fiber.Handler {
+	log = log.Named("post")
+
+	return func(c *fiber.Ctx) error {
+		messageId, err := strconv.Atoi(c.Params("message_id"))
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Invalid 'id' parameter",
+			})
+		}
+
+		log.Info("Fetching post", zap.Int("id", messageId))
+
+		ctx := context.Background()
+
+		message, err := repository.GetPost(ctx, messageId)
+		if err != nil {
+			log.Error("failed to fetch post", zap.Error(err))
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to fetch post",
+			})
+		}
+
+		return c.JSON(message)
+	}
+}
