@@ -329,6 +329,7 @@ func createPostFromMessages(messages []*tg.Message) *models.Post {
 		parsedContent := utils.ParseMessageContent(info.Message)
 
 		post := &models.Post{
+			ImageURL:        GetImageURL(info.ID),
 			MessageID:       info.ID,
 			GroupedID:       info.GroupedID,
 			Date:            info.Date,
@@ -405,4 +406,8 @@ func GetInputChannel(ctx context.Context, client *gotgproto.Client) (*tg.InputCh
 
 	client.PeerStorage.AddPeer(channel.GetID(), channel.AccessHash, storage.TypeChannel, "")
 	return channel.AsInput(), nil
+}
+
+func GetImageURL(messageID int) string {
+	return fmt.Sprintf(config.ValueOf.Host+"/api/v1/posts/images/%d", messageID)
 }
