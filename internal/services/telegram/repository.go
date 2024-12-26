@@ -8,6 +8,7 @@ import (
 	"github.com/gotd/td/tg"
 	"go-winx-api/config"
 	"go-winx-api/internal/models"
+	"go-winx-api/internal/utils"
 	"go.uber.org/zap"
 	"sort"
 )
@@ -193,6 +194,9 @@ func createPostFromMessages(messages []*tg.Message) *models.Post {
 	}
 
 	if info != nil {
+
+		parsedContent := utils.ParseMessageContent(info.Message)
+
 		post := &models.Post{
 			MessageID:       info.ID,
 			GroupedID:       info.GroupedID,
@@ -200,7 +204,7 @@ func createPostFromMessages(messages []*tg.Message) *models.Post {
 			Author:          info.PostAuthor,
 			OriginalContent: info.Message,
 			Reactions:       extractReactions(info.Reactions),
-			ParsedContent:   nil,
+			ParsedContent:   parsedContent,
 		}
 		if media != nil {
 			if photo, ok := media.Media.(*tg.MessageMediaPhoto); ok {
