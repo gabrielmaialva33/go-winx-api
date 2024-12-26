@@ -27,7 +27,7 @@ func IsEmoji(character rune) bool {
 	return false
 }
 
-// Process functions for each field
+// ProcessTitle Process functions for each field
 func ProcessTitle(match []string, data *models.MovieData, buffer *[]string) {
 	fullTitle := strings.TrimSpace(match[1])
 	year := match[2]
@@ -182,7 +182,7 @@ var fieldDefinitions = []FieldDefinition{
 	{
 		Field:       "directors",
 		Labels:      []string{"Direção:", "Diretor:", "👑 Direção:", "👑 Direção/Roteiro:"},
-		Regex:       []*regexp.Regexp{regexp.MustCompile(`^.*?(?:Direção|Diretor|Direção\/Roteiro):\s*(.*)$`)},
+		Regex:       []*regexp.Regexp{regexp.MustCompile(`^.*?(?:Direção|Diretor|Direção/Roteiro):\s*(.*)$`)},
 		Process:     ProcessDirectors,
 		IsMultiline: false,
 	},
@@ -242,7 +242,7 @@ func ParseMessageContent(content string) models.MovieData {
 	lines := splitAndTrim(content, "\n")
 
 	dataInfo := models.MovieData{}
-	multilineBuffer := []string{}
+	var multilineBuffer []string
 	currentField := ""
 
 	endOfFieldMarkers := []string{
