@@ -43,8 +43,12 @@ func (rw *RangeWriter) Write(p []byte) (int, error) {
 	}
 
 	end := len(p)
-	if rw.pos+len(p) > rw.End {
+	if rw.End >= 0 && rw.pos+len(p) > rw.End {
 		end = rw.End - rw.pos
+	}
+
+	if start > end {
+		return 0, nil // nothing to write
 	}
 
 	n, err := rw.Output.Write(p[start:end])
@@ -64,6 +68,10 @@ func NewRepository(client *gotgproto.Client, logger *zap.Logger) *Repository {
 		channel: channel,
 		logger:  logger,
 	}
+}
+
+func (r *Repository) GetClient() *gotgproto.Client {
+	return r.client
 }
 
 func (r *Repository) GetHistory(ctx context.Context, limit int, offsetID int) ([]*tg.Message, error) {
@@ -303,20 +311,19 @@ func (r *Repository) GetPostImage(ctx context.Context, messageID int, output io.
 	return nil
 }
 
-func (r *Repository) StreamVideo(ctx context.Context, messageID int, output io.Writer, start, end int) error {
+func (r *Repository) GetFile(ctx context.Context, messageID int) (*models.File, error) {
 	peerClass := r.client.PeerStorage.GetInputPeerById(config.ValueOf.ChannelId)
 	if peerClass == nil {
 		r.logger.Error("channel not configured in PeerStorage")
-		return errors.New("channel not configured")
+		return nil, errors.New("channel not configured")
 	}
 
 	inputChannel, ok := peerClass.(*tg.InputPeerChannel)
 	if !ok {
 		r.logger.Error("invalid channel type in PeerStorage")
-		return errors.New("invalid channel type")
+		return nil, errors.New("invalid channel type")
 	}
 
-	// Request the message by ID
 	req := &tg.ChannelsGetMessagesRequest{
 		Channel: &tg.InputChannel{
 			ChannelID:  inputChannel.ChannelID,
@@ -330,49 +337,48 @@ func (r *Repository) StreamVideo(ctx context.Context, messageID int, output io.W
 	result, err := r.client.API().ChannelsGetMessages(ctx, req)
 	if err != nil {
 		r.logger.Error("failed to fetch the message", zap.Error(err))
-		return fmt.Errorf("failed to fetch the message: %w", err)
+		return nil, fmt.Errorf("failed to fetch the message: %w", err)
+
 	}
 
-	// Check if the message contains a video
-	var document *tg.Document
-	switch res := result.(type) {
-	case *tg.MessagesChannelMessages:
-		for _, msg := range res.Messages {
-			if message, ok := msg.(*tg.Message); ok {
-				if media, ok := message.Media.(*tg.MessageMediaDocument); ok {
-					document, _ = media.Document.AsNotEmpty()
-					break
-				}
-			}
+	messages := result.(*tg.MessagesChannelMessages)
+	message := messages.Messages[0].(*tg.Message)
+	media := message.Media.(*tg.MessageMediaDocument)
+	document, _ := media.Document.AsNotEmpty()
+
+	var fileName string
+	for _, attribute := range document.Attributes {
+		if name, ok := attribute.(*tg.DocumentAttributeFilename); ok {
+			fileName = name.FileName
+			break
 		}
-	default:
-		return errors.New("unexpected response type from Telegram API")
 	}
 
-	if document == nil {
-		r.logger.Error("video not found in the message", zap.Int("messageID", messageID))
-		return errors.New("video not found in the message")
+	file := &models.File{
+		Location: &tg.InputDocumentFileLocation{ID: document.ID, AccessHash: document.AccessHash, FileReference: document.FileReference},
+		FileSize: document.Size,
+		FileName: fileName,
+		MimeType: document.MimeType,
+		ID:       document.ID,
 	}
 
-	documentLocation := &tg.InputDocumentFileLocation{
-		ID:            document.ID,
-		AccessHash:    document.AccessHash,
-		FileReference: document.FileReference,
-	}
+	return file, nil
+}
 
-	dl := downloader.NewDownloader()
-	dl = dl.WithPartSize(1024 * 1024) // Set chunk size to 1MB
-
-	builder, err := dl.Download(r.client.API(), documentLocation).Stream(ctx, &RangeWriter{Output: output, Start: start, End: end})
-	fmt.Println("Start", start, "End", end)
+func (r *Repository) GetFileHash(ctx context.Context, messageID int) (string, error) {
+	file, err := r.GetFile(ctx, messageID)
 	if err != nil {
-		r.logger.Error("Failed to download the video", zap.Error(err))
-		return fmt.Errorf("failed to download the video: %w", err)
+		return "", err
 	}
 
-	fmt.Println("Builder", builder)
+	hash := &models.HashFileStruct{
+		FileName: file.FileName,
+		FileSize: file.FileSize,
+		MimeType: file.MimeType,
+		FileID:   file.ID,
+	}
 
-	return nil
+	return hash.Pack(), nil
 }
 
 func limitGroupsByMostRecent(groups map[int64][]*tg.Message, needed int) map[int64][]*tg.Message {
@@ -447,7 +453,7 @@ func createPostFromMessages(messages []*tg.Message) *models.Post {
 						post.DocumentSize = doc.Size
 					}
 					post.DocumentMessageID = media.ID
-					post.VideoURL = GetVideoURL(media.ID, post.DocumentSize)
+					post.VideoURL = GetVideoURL(media.ID)
 				}
 			}
 		}
@@ -513,6 +519,6 @@ func GetImageURL(messageID int) string {
 	return fmt.Sprintf(config.ValueOf.Host+"/api/v1/posts/images/%d", messageID)
 }
 
-func GetVideoURL(messageID int, size int64) string {
-	return fmt.Sprintf(config.ValueOf.Host+"/api/v1/posts/videos/%d/%d", messageID, size)
+func GetVideoURL(messageID int) string {
+	return fmt.Sprintf(config.ValueOf.Host+"/api/v1/posts/videos/%d", messageID)
 }

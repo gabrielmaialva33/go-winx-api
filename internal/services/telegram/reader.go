@@ -46,6 +46,9 @@ func NewReader(
 		contentLength: contentLength,
 	}
 	reader.log.Sugar().Debug("Starting Telegram reader")
+	reader.log.Sugar().Debug("Content length", contentLength)
+	reader.log.Sugar().Debug("Start", start)
+	reader.log.Sugar().Debug("End", end)
 	reader.next = reader.partStream()
 	return reader, nil
 }

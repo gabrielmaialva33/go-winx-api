@@ -2,15 +2,11 @@ package handlers
 
 import (
 	"context"
-	"fmt"
+	"github.com/gofiber/fiber/v2"
 	"go-winx-api/internal/models"
 	"go-winx-api/internal/services/telegram"
-	"net/http"
-	"strconv"
-	"strings"
-
-	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
+	"strconv"
 )
 
 func GetAllPosts(log *zap.Logger, repository *telegram.Repository) fiber.Handler {
@@ -112,55 +108,6 @@ func GetPostVideo(log *zap.Logger, repository *telegram.Repository) fiber.Handle
 	log = log.Named("stream_videos")
 
 	return func(c *fiber.Ctx) error {
-
-		messageID, err := strconv.Atoi(c.Params("message_id"))
-		if err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid 'message_id' parameter"})
-		}
-
-		size, err := strconv.Atoi(c.Params("size"))
-		if err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid 'size' parameter"})
-		}
-
-		rangeHeader := c.Get("Range", "")
-		start, end := 0, size-1
-
-		if rangeHeader != "" {
-			if !strings.HasPrefix(rangeHeader, "bytes=") {
-				return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid 'Range' header"})
-			}
-
-			rangeParts := strings.Split(strings.TrimPrefix(rangeHeader, "bytes="), "-")
-			start, _ = strconv.Atoi(rangeParts[0])
-			if len(rangeParts) > 1 && rangeParts[1] != "" {
-				end, _ = strconv.Atoi(rangeParts[1])
-			}
-			if end >= size {
-				end = size - 1
-			}
-		}
-
-		if start >= size || start > end {
-			return c.Status(http.StatusRequestedRangeNotSatisfiable).JSON(fiber.Map{"error": "Invalid range"})
-		}
-
-		chunkSize := end - start + 1
-		log.Info("Streaming video", zap.Int("message_id", messageID), zap.Int("start", start), zap.Int("end", end), zap.Int("chunk_size", chunkSize))
-
-		ctx := context.Background()
-
-		c.Set("Content-Type", "video/mp4")
-		c.Set("Accept-Ranges", "bytes")
-		c.Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, size))
-		c.Set("Content-Length", strconv.Itoa(chunkSize))
-		c.Status(http.StatusPartialContent)
-
-		if err := repository.StreamVideo(ctx, messageID, c.Response().BodyWriter(), start, end); err != nil {
-			log.Error("Failed to stream video", zap.Error(err))
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to stream video"})
-		}
-
-		return nil
+		return c.SendStatus(fiber.StatusNotImplemented)
 	}
 }

@@ -20,7 +20,31 @@ type Post struct {
 	DocumentMessageID int        `json:"document_message_id,omitempty"`
 }
 
+func (m *Post) ToMap() map[string]interface{} {
+	return map[string]interface{}{
+		"image_url":           m.ImageURL,
+		"video_url":           m.VideoURL,
+		"grouped_id":          m.GroupedID,
+		"message_id":          m.MessageID,
+		"date":                m.Date,
+		"author":              m.Author,
+		"reactions":           m.Reactions,
+		"original_content":    m.OriginalContent,
+		"parsed_content":      m.ParsedContent.ToMap(),
+		"document_id":         m.DocumentID,
+		"document_size":       m.DocumentSize,
+		"document_message_id": m.DocumentMessageID,
+	}
+}
+
 type PaginatedPosts struct {
 	Data       []Post         `json:"data"`
 	Pagination PaginationData `json:"pagination"`
+}
+
+func (m *PaginatedPosts) ToMap() map[string]interface{} {
+	return map[string]interface{}{
+		"data":       m.Data,
+		"pagination": m.Pagination.ToMap(),
+	}
 }
