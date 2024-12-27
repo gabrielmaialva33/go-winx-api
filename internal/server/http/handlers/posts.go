@@ -112,7 +112,7 @@ func GetPostVideo(log *zap.Logger, repository *telegram.Repository) fiber.Handle
 	log = log.Named("stream_videos")
 
 	return func(c *fiber.Ctx) error {
-		// Recupere os parâmetros message_id e size
+
 		messageID, err := strconv.Atoi(c.Params("message_id"))
 		if err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid 'message_id' parameter"})
@@ -123,11 +123,9 @@ func GetPostVideo(log *zap.Logger, repository *telegram.Repository) fiber.Handle
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid 'size' parameter"})
 		}
 
-		// Recupere o cabeçalho Range
 		rangeHeader := c.Get("Range", "")
 		start, end := 0, size-1
 
-		// Processa o cabeçalho Range
 		if rangeHeader != "" {
 			if !strings.HasPrefix(rangeHeader, "bytes=") {
 				return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid 'Range' header"})
@@ -152,14 +150,12 @@ func GetPostVideo(log *zap.Logger, repository *telegram.Repository) fiber.Handle
 
 		ctx := context.Background()
 
-		// Configuração dos cabeçalhos HTTP
 		c.Set("Content-Type", "video/mp4")
 		c.Set("Accept-Ranges", "bytes")
 		c.Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, size))
 		c.Set("Content-Length", strconv.Itoa(chunkSize))
 		c.Status(http.StatusPartialContent)
 
-		// Streaming do vídeo
 		if err := repository.StreamVideo(ctx, messageID, c.Response().BodyWriter(), start, end); err != nil {
 			log.Error("Failed to stream video", zap.Error(err))
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to stream video"})
