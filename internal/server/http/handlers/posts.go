@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"go-winx-api/internal/models"
 	"go-winx-api/internal/services/telegram"
 	"go.uber.org/zap"
 	"strconv"
+	"strings"
 )
 
 func GetAllPosts(log *zap.Logger, repository *telegram.Repository) fiber.Handler {
@@ -108,6 +110,58 @@ func GetPostVideo(log *zap.Logger, repository *telegram.Repository) fiber.Handle
 	log = log.Named("stream_videos")
 
 	return func(c *fiber.Ctx) error {
-		return c.SendStatus(fiber.StatusNotImplemented)
+		messageID, err := strconv.Atoi(c.Params("message_id"))
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Invalid 'message_id' parameter",
+			})
+		}
+
+		log.Info("Streaming video", zap.Int("message_id", messageID))
+
+		file, err := repository.GetFile(context.Background(), messageID)
+		if err != nil {
+			log.Error("Failed to fetch file metadata", zap.Error(err))
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to fetch file metadata",
+			})
+		}
+
+		rangeHeader := c.Get("Range")
+		var start, end int64
+		if rangeHeader != "" {
+			parts := strings.Split(strings.TrimPrefix(rangeHeader, "bytes="), "-")
+			start, _ = strconv.ParseInt(parts[0], 10, 64)
+			if len(parts) > 1 && parts[1] != "" {
+				end, _ = strconv.ParseInt(parts[1], 10, 64)
+			} else {
+				end = file.FileSize - 1
+			}
+		} else {
+			start = 0
+			end = file.FileSize - 1
+		}
+
+		if end >= file.FileSize {
+			end = file.FileSize - 1
+		}
+
+		chunkSize := end - start + 1
+
+		c.Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, file.FileSize))
+		c.Set("Content-Length", fmt.Sprintf("%d", chunkSize))
+		c.Set("Accept-Ranges", "bytes")
+		c.Set("Content-Type", file.MimeType)
+		c.Status(fiber.StatusPartialContent)
+
+		stream, err := repository.GetVideoStream(context.Background(), file, start, end)
+		if err != nil {
+			log.Error("Failed to stream video", zap.Error(err))
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to stream video",
+			})
+		}
+
+		return c.SendStream(stream)
 	}
 }

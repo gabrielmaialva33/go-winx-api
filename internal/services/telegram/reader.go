@@ -57,92 +57,109 @@ func (*Reader) Close() error {
 	return nil
 }
 
-func (r *Reader) Read(p []byte) (int, error) {
+func (r *Reader) Read(p []byte) (n int, err error) {
 	if r.bytesRead == r.contentLength {
-		r.log.Sugar().Debug("EOF (bytesRead == contentLength)")
+		r.log.Sugar().Debug("EOF (bytesRead equals contentLength)")
 		return 0, io.EOF
 	}
 
 	if r.bufferIndex >= int64(len(r.buffer)) {
-		var err error
 		r.buffer, err = r.next()
-		r.log.Debug("Updating buffer", zap.Int64("len", int64(len(r.buffer))))
+		r.log.Debug("Next Buffer", zap.Int64("len", int64(len(r.buffer))))
+
 		if err != nil {
+			r.log.Error("Error fetching next buffer", zap.Error(err))
 			return 0, err
 		}
-		if len(r.buffer) == 0 {
+
+		if len(r.buffer) == 0 { // Checa buffer vazio
+			r.log.Sugar().Warn("Buffer is empty, resetting partStream")
 			r.next = r.partStream()
 			r.buffer, err = r.next()
 			if err != nil {
+				r.log.Error("Error fetching buffer after resetting partStream", zap.Error(err))
 				return 0, err
 			}
 		}
 		r.bufferIndex = 0
 	}
 
-	n := copy(p, r.buffer[r.bufferIndex:])
+	n = copy(p, r.buffer[r.bufferIndex:])
 	r.bufferIndex += int64(n)
 	r.bytesRead += int64(n)
+
+	r.log.Debug("Read Buffer", zap.Int("bytes", n), zap.Int64("bytesRead", r.bytesRead))
 	return n, nil
 }
 
-// Gets a chunk of bytes from the file
-func (r *Reader) chunk(offset, limit int64) ([]byte, error) {
+func (r *Reader) chunk(offset int64, limit int64) ([]byte, error) {
+	r.log.Sugar().Debugf("Requesting chunk: Offset=%d, Limit=%d", offset, limit)
 	req := &tg.UploadGetFileRequest{
 		Offset:   offset,
 		Limit:    int(limit),
 		Location: r.location,
 	}
+
 	res, err := r.client.API().UploadGetFile(r.ctx, req)
 	if err != nil {
+		r.log.Error("Failed to fetch chunk", zap.Error(err))
 		return nil, err
 	}
 
 	switch result := res.(type) {
 	case *tg.UploadFile:
+		r.log.Sugar().Debugf("Chunk received: %d bytes", len(result.Bytes))
+		if len(result.Bytes) == 0 {
+			r.log.Warn("Empty chunk received despite no error")
+		}
 		return result.Bytes, nil
 	default:
-		return nil, fmt.Errorf("unexpected type %T", res)
+		err := fmt.Errorf("unexpected type %T from UploadGetFile", res)
+		r.log.Error("Failed to fetch chunk", zap.Error(err))
+		return nil, err
 	}
 }
 
-// Helper function to apply cuts to chunks
-func (r *Reader) applyPartCut(res []byte, isFirstPart, isLastPart bool, firstPartCut, lastPartCut int64) []byte {
-	if isFirstPart && isLastPart {
-		return res[firstPartCut:lastPartCut]
-	} else if isFirstPart {
-		return res[firstPartCut:]
-	} else if isLastPart {
-		return res[:lastPartCut]
-	}
-	return res
-}
-
-// Creates a stream to split the file into parts (chunks)
 func (r *Reader) partStream() func() ([]byte, error) {
-	offset := r.start - (r.start % r.chunkSize)
-	firstPartCut := r.start - offset
-	lastPartCut := (r.end % r.chunkSize) + 1
-	partCount := int((r.end - offset + r.chunkSize) / r.chunkSize)
+	start := r.start
+	end := r.end
+	offset := start - (start % r.chunkSize)
+
+	firstPartCut := start - offset
+	lastPartCut := (end % r.chunkSize) + 1
+	partCount := int((end - offset + r.chunkSize) / r.chunkSize)
 	currentPart := 1
 
 	return func() ([]byte, error) {
 		if currentPart > partCount {
-			return make([]byte, 0), nil
+			r.log.Debug("All parts have been read")
+			return make([]byte, 0), nil // EOF
 		}
 
+		r.log.Sugar().Debugf("Fetching part %d/%d, Offset=%d", currentPart, partCount, offset)
+
+		// Solicitar um novo chunk
 		res, err := r.chunk(offset, r.chunkSize)
 		if err != nil {
+			r.log.Error("Failed to fetch chunk", zap.Error(err))
 			return nil, err
 		}
 
-		isFirstPart := currentPart == 1
-		isLastPart := currentPart == partCount
-		res = r.applyPartCut(res, isFirstPart, isLastPart, firstPartCut, lastPartCut)
+		if len(res) == 0 {
+			return res, nil // Buffer vazio, isso termina cedo
+		}
+
+		// Cortar partes específicas
+		if partCount == 1 { // Se houver apenas um chunk
+			res = res[firstPartCut:lastPartCut]
+		} else if currentPart == 1 { // Primeiro chunk
+			res = res[firstPartCut:]
+		} else if currentPart == partCount { // Último chunk
+			res = res[:lastPartCut]
+		}
 
 		currentPart++
 		offset += r.chunkSize
-		r.log.Sugar().Debugf("Part %d/%d", currentPart, partCount)
 		return res, nil
 	}
 }

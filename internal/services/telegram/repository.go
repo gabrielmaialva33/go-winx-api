@@ -24,38 +24,6 @@ type Repository struct {
 	logger  *zap.Logger
 }
 
-type RangeWriter struct {
-	Output io.Writer
-	Start  int
-	End    int
-	pos    int
-}
-
-func (rw *RangeWriter) Write(p []byte) (int, error) {
-	if rw.pos+len(p) < rw.Start {
-		rw.pos += len(p)
-		return len(p), nil
-	}
-
-	start := 0
-	if rw.pos < rw.Start {
-		start = rw.Start - rw.pos
-	}
-
-	end := len(p)
-	if rw.End >= 0 && rw.pos+len(p) > rw.End {
-		end = rw.End - rw.pos
-	}
-
-	if start > end {
-		return 0, nil // nothing to write
-	}
-
-	n, err := rw.Output.Write(p[start:end])
-	rw.pos += len(p)
-	return n, err
-}
-
 func NewRepository(client *gotgproto.Client, logger *zap.Logger) *Repository {
 	channel, err := GetInputChannel(context.Background(), client)
 	if err != nil {
@@ -309,6 +277,23 @@ func (r *Repository) GetPostImage(ctx context.Context, messageID int, output io.
 	}
 
 	return nil
+}
+
+func (r *Repository) GetVideoStream(ctx context.Context, file *models.File, start, end int64) (io.Reader, error) {
+	inputLocation := &tg.InputDocumentFileLocation{
+		ID:            file.Location.ID,
+		AccessHash:    file.Location.AccessHash,
+		FileReference: file.Location.FileReference,
+	}
+
+	contentLength := end - start + 1
+	reader, err := NewReader(ctx, r.client, inputLocation, start, end, contentLength)
+	if err != nil {
+		r.logger.Error("failed to create telegram reader", zap.Error(err))
+		return nil, err
+	}
+
+	return reader, nil
 }
 
 func (r *Repository) GetFile(ctx context.Context, messageID int) (*models.File, error) {
