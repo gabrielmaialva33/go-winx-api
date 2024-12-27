@@ -279,7 +279,7 @@ func (r *Repository) GetPostImage(ctx context.Context, messageID int, output io.
 	return nil
 }
 
-func (r *Repository) GetVideoStream(ctx context.Context, file *models.File, start, end int64) (io.Reader, error) {
+func (r *Repository) GetPostVideo(ctx context.Context, file *models.File, start, end int64) (io.Reader, error) {
 	inputLocation := &tg.InputDocumentFileLocation{
 		ID:            file.Location.ID,
 		AccessHash:    file.Location.AccessHash,

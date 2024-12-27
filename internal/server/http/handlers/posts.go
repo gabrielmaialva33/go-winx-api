@@ -3,12 +3,14 @@ package handlers
 import (
 	"context"
 	"fmt"
-	"github.com/gofiber/fiber/v2"
-	"go-winx-api/internal/models"
-	"go-winx-api/internal/services/telegram"
-	"go.uber.org/zap"
 	"strconv"
 	"strings"
+
+	"go-winx-api/internal/models"
+	"go-winx-api/internal/services/telegram"
+
+	"github.com/gofiber/fiber/v2"
+	"go.uber.org/zap"
 )
 
 func GetAllPosts(log *zap.Logger, repository *telegram.Repository) fiber.Handler {
@@ -117,7 +119,7 @@ func GetPostVideo(log *zap.Logger, repository *telegram.Repository) fiber.Handle
 			})
 		}
 
-		log.Info("Streaming video", zap.Int("message_id", messageID))
+		log.Info("streaming video", zap.Int("message_id", messageID))
 
 		file, err := repository.GetFile(context.Background(), messageID)
 		if err != nil {
@@ -154,7 +156,7 @@ func GetPostVideo(log *zap.Logger, repository *telegram.Repository) fiber.Handle
 		c.Set("Content-Type", file.MimeType)
 		c.Status(fiber.StatusPartialContent)
 
-		stream, err := repository.GetVideoStream(context.Background(), file, start, end)
+		stream, err := repository.GetPostVideo(context.Background(), file, start, end)
 		if err != nil {
 			log.Error("Failed to stream video", zap.Error(err))
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
