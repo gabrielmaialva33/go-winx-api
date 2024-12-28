@@ -532,7 +532,7 @@ func GetInputChannel(ctx context.Context, client *gotgproto.Client) (*tg.InputCh
 		return nil, errors.New("type assertion to *tg.Channel failed")
 	}
 
-	client.PeerStorage.AddPeer(channel.GetID(), channel.AccessHash, storage.TypeChannel, "")
+	client.PeerStorage.AddPeer(channel.GetID(), channel.AccessHash, storage.TypeChannel, storage.DefaultUsername)
 	return channel.AsInput(), nil
 }
 
