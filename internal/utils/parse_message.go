@@ -52,6 +52,7 @@ func ProcessCountryOfOrigin(match []string, data *models.MovieData, buffer *[]st
 	countries := splitAndTrim(match[1], "|")
 	data.CountryOfOrigin = []string{}
 	data.FlagsOfOrigin = []string{}
+
 	for _, country := range countries {
 		var flags string
 		var countryName string
@@ -62,14 +63,20 @@ func ProcessCountryOfOrigin(match []string, data *models.MovieData, buffer *[]st
 				countryName += string(char)
 			}
 		}
-		countryName = strings.TrimSpace(strings.TrimPrefix(countryName, "#"))
+
+		countryName = strings.TrimSpace(strings.ReplaceAll(countryName, "#", ""))
 		if flags != "" {
 			data.FlagsOfOrigin = append(data.FlagsOfOrigin, flags)
 		}
 		if countryName != "" {
 			data.CountryOfOrigin = append(data.CountryOfOrigin, countryName)
+		} else if flags != "" { // Caso em que só há emojis
+			data.CountryOfOrigin = append(data.CountryOfOrigin, flags)
 		}
 	}
+
+	data.CountryOfOrigin = removeEmptyStrings(data.CountryOfOrigin)
+	data.FlagsOfOrigin = removeEmptyStrings(data.FlagsOfOrigin)
 }
 
 func ProcessDirectors(match []string, data *models.MovieData, buffer *[]string) {
@@ -176,7 +183,7 @@ var fieldDefinitions = []FieldDefinition{
 	{
 		Field:       "country_of_origin",
 		Labels:      []string{"País de Origem:", "📍 País de Origem:", "Pais de Origem:"},
-		Regex:       []*regexp.Regexp{regexp.MustCompile(`^.*?Pa[íi]s de Origem:\s*(.*)$`)},
+		Regex:       []*regexp.Regexp{regexp.MustCompile(`(?i)^.*?Pa[íi]s(?:es)? de Origem[:：]?\s*(.*?)\s*$`)},
 		Process:     ProcessCountryOfOrigin,
 		IsMultiline: false,
 	},
@@ -343,4 +350,14 @@ func ParseMessageContent(content string) models.MovieData {
 	}
 
 	return dataInfo
+}
+
+func removeEmptyStrings(input []string) []string {
+	var result []string
+	for _, str := range input {
+		if strings.TrimSpace(str) != "" {
+			result = append(result, str)
+		}
+	}
+	return result
 }
