@@ -37,7 +37,6 @@ func InitClient(log *zap.Logger) (*gotgproto.Client, error) {
 				InMemory:         true,
 				Logger:           log,
 				Middlewares:      GetFloodMiddleware(log),
-				Context:          ctx,
 				Device: &telegram.DeviceConfig{
 					DeviceModel:   "winx-api",
 					AppVersion:    "1.0.0",
