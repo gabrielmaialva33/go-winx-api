@@ -56,7 +56,10 @@ func (c *Cache) SetFile(key string, value *models.File, expireSeconds int) error
 	if err != nil {
 		return err
 	}
-	cache.cache.Set([]byte(key), buf.Bytes(), expireSeconds)
+	err = cache.cache.Set([]byte(key), buf.Bytes(), expireSeconds)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -84,7 +87,10 @@ func (c *Cache) SetPost(key string, value *models.Post, expireSeconds int) error
 	if err != nil {
 		return err
 	}
-	cache.cache.Set([]byte(key), buf.Bytes(), expireSeconds)
+	err = cache.cache.Set([]byte(key), buf.Bytes(), expireSeconds)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
