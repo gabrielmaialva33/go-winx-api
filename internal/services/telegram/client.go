@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"context"
+	"github.com/gotd/td/telegram"
 	"time"
 
 	"go-winx-api/config"
@@ -34,6 +35,14 @@ func InitClient(log *zap.Logger) (*gotgproto.Client, error) {
 				Session:          session,
 				DisableCopyright: true,
 				InMemory:         true,
+				Logger:           log,
+				Middlewares:      GetFloodMiddleware(log),
+				Context:          ctx,
+				Device: &telegram.DeviceConfig{
+					DeviceModel:   "winx-api",
+					AppVersion:    "1.0.0",
+					SystemVersion: "linux",
+				},
 			},
 		)
 		clientChan <- struct {
