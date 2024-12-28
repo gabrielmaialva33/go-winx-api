@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gotd/td/telegram/downloader"
+	"go-winx-api/internal/cache"
 	"io"
 	"sort"
 
@@ -151,6 +152,14 @@ func (r *Repository) PaginatePosts(ctx context.Context, pagination models.Pagina
 }
 
 func (r *Repository) GetPost(ctx context.Context, messageID int) (*models.Post, error) {
+	key := fmt.Sprintf("post:%d:%d", messageID, r.client.Self.ID)
+	var cachedPost models.Post
+	err := cache.GetCache().GetPost(key, &cachedPost)
+	if err == nil {
+		r.logger.Sugar().Info("using cached post", messageID, r.client.Self.ID)
+		return &cachedPost, nil
+	}
+
 	peerClass := r.client.PeerStorage.GetInputPeerById(config.ValueOf.ChannelId)
 	if peerClass == nil {
 		r.logger.Error("channel not configured in PeerStorage")
@@ -203,6 +212,11 @@ func (r *Repository) GetPost(ctx context.Context, messageID int) (*models.Post, 
 	post := createPostFromMessages(messages)
 	if post == nil {
 		return nil, errors.New("failed to create post from messages")
+	}
+
+	err = cache.GetCache().SetPost(key, post, 3600*12) // 12 hours
+	if err != nil {
+		r.logger.Error("failed to cache post", zap.Error(err))
 	}
 
 	return post, nil
@@ -297,6 +311,14 @@ func (r *Repository) GetPostVideo(ctx context.Context, file *models.File, start,
 }
 
 func (r *Repository) GetFile(ctx context.Context, messageID int) (*models.File, error) {
+	key := fmt.Sprintf("file:%d:%d", messageID, r.client.Self.ID)
+	var cachedFile models.File
+	err := cache.GetCache().GetFile(key, &cachedFile)
+	if err == nil {
+		r.logger.Sugar().Info("using cached media message properties", messageID, r.client.Self.ID)
+		return &cachedFile, nil
+	}
+
 	peerClass := r.client.PeerStorage.GetInputPeerById(config.ValueOf.ChannelId)
 	if peerClass == nil {
 		r.logger.Error("channel not configured in PeerStorage")
@@ -345,6 +367,11 @@ func (r *Repository) GetFile(ctx context.Context, messageID int) (*models.File, 
 		FileName: fileName,
 		MimeType: document.MimeType,
 		ID:       document.ID,
+	}
+
+	err = cache.GetCache().SetFile(key, file, 3600*12) // 12 hours
+	if err != nil {
+		r.logger.Error("failed to cache file", zap.Error(err))
 	}
 
 	return file, nil

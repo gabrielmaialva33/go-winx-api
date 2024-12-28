@@ -2,6 +2,7 @@ package main
 
 import (
 	"go-winx-api/config"
+	"go-winx-api/internal/cache"
 	"go-winx-api/internal/server/http"
 	"go-winx-api/internal/services/telegram"
 	"go-winx-api/internal/utils"
@@ -25,6 +26,8 @@ func main() {
 	}
 
 	telegram.TgClient = client
+
+	cache.InitCache(log)
 
 	workers, err := telegram.StartWorkers(log)
 	if err != nil {
