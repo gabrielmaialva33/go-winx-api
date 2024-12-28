@@ -37,27 +37,6 @@ tags:
   - name: Post
     description: Operations related to posts
 paths:
-  /api/v1/health:
-    get:
-      summary: Health Check
-      description: Returns the system health status and detailed checks.
-      tags:
-        - Health
-      parameters:
-        - name: Content-Type
-          in: header
-          required: true
-          schema:
-            type: string
-            example: application/json
-      responses:
-        '200':
-          description: System health information.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HealthCheck'
-
   # posts
   /api/v1/posts:
     get:
@@ -99,6 +78,71 @@ paths:
                       $ref: '#/components/schemas/Post'
                   pagination:
                     $ref: '#/components/schemas/Pagination'
+  /api/v1/posts/{message_id}:
+    get:
+      summary: Get post
+      description: Returns the post of the movie.
+      operationId: get.post
+      tags:
+        - Post
+      parameters:
+        - name: message_id
+          in: path
+          required: true
+          schema:
+            type: number
+            example: 7188
+      responses:
+        '200':
+          description: The post of the movie.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+  /api/v1/posts/images/{message_id}:
+    get:
+      summary: Get image of post
+      description: Returns the image of the post.
+      operationId: get.image
+      tags:
+        - Post
+      parameters:
+        - name: message_id
+          in: path
+          required: true
+          schema:
+            type: number
+            example: 7188
+      responses:
+        '200':
+          description: The image of the post.
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+  /api/v1/posts/videos/{message_id}:
+    get:
+      summary: Get video of post
+      description: Returns the video of the post.
+      operationId: get.video
+      tags:
+        - Post
+      parameters:
+        - name: message_id
+          in: path
+          required: true
+          schema:
+            type: number
+            example: 7188
+      responses:
+        '200':
+          description: The video of the post.
+          content:
+            video/mp4:
+              schema:
+                type: string
+                format: binary
 
 components:
   securitySchemes:
