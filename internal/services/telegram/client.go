@@ -2,13 +2,13 @@ package telegram
 
 import (
 	"context"
-	"github.com/gotd/td/telegram"
 	"time"
 
 	"go-winx-api/config"
 
 	"github.com/celestix/gotgproto"
 	"github.com/celestix/gotgproto/sessionMaker"
+	"github.com/gotd/td/telegram"
 	"go.uber.org/zap"
 )
 
@@ -34,7 +34,7 @@ func InitClient(log *zap.Logger) (*gotgproto.Client, error) {
 			&gotgproto.ClientOpts{
 				Session:          session,
 				DisableCopyright: true,
-				InMemory:         true,
+				InMemory:         false,
 				Logger:           log,
 				Middlewares:      GetFloodMiddleware(log),
 				Device: &telegram.DeviceConfig{
