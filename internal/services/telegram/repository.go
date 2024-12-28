@@ -145,6 +145,15 @@ func (r *Repository) PaginatePosts(ctx context.Context, pagination models.Pagina
 		pagination.Total = 0
 	}
 
+	// cache posts for 12 hours
+	for _, post := range posts {
+		key := fmt.Sprintf("post:%d:%d", post.MessageID, r.client.Self.ID)
+		err = cache.GetCache().SetPost(key, &post, 3600*12)
+		if err != nil {
+			r.logger.Error("failed to cache post", zap.Error(err))
+		}
+	}
+
 	return &models.PaginatedPosts{
 		Data:       posts,
 		Pagination: pagination,
