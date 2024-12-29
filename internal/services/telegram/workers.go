@@ -115,6 +115,7 @@ func GetNextWorker() *Worker {
 	}
 
 	Workers.log.Sugar().Infof("using worker %d", worker.Id)
+	fmt.Printf("using worker %d\n", worker.Id)
 	return worker
 }
 
@@ -170,16 +171,16 @@ func (w *UserWorkers) incStarting() {
 	w.starting++
 }
 
-func startWorker(l *zap.Logger, botToken string, index int) (*gotgproto.Client, error) {
+func startWorker(l *zap.Logger, ss string, index int) (*gotgproto.Client, error) {
 	log := l.Named("worker").Sugar()
 	log.Infof("starting worker with index - %d", index)
 
-	session := sessionMaker.TelethonSession(config.ValueOf.StringSessions[index]).Name(fmt.Sprintf("worker-%d", index))
+	session := sessionMaker.TelethonSession(ss).Name(fmt.Sprintf("worker-%d", index))
 
 	client, err := gotgproto.NewClient(
 		config.ValueOf.ApiId,
 		config.ValueOf.ApiHash,
-		gotgproto.ClientTypeBot(botToken),
+		gotgproto.ClientTypePhone(""),
 		&gotgproto.ClientOpts{
 			Session:          session,
 			DisableCopyright: true,
