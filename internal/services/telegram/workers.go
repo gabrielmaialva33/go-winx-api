@@ -114,7 +114,7 @@ func GetNextWorker() *Worker {
 		Workers.log.Info("Access hash updated successfully", zap.Int("worker_id", worker.Id))
 	}
 
-	Workers.log.Sugar().Debugf("using worker %d", worker.Id)
+	Workers.log.Sugar().Infof("using worker %d", worker.Id)
 	return worker
 }
 
