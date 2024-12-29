@@ -402,6 +402,31 @@ func (r *Repository) GetFileHash(ctx context.Context, messageID int) (string, er
 	return hash.Pack(), nil
 }
 
+func (r *Repository) RefreshAccessHash(ctx context.Context) error {
+	inputChannel := &tg.InputChannel{
+		ChannelID: config.ValueOf.ChannelId,
+	}
+
+	channels, err := r.client.API().ChannelsGetChannels(ctx, []tg.InputChannelClass{inputChannel})
+	if err != nil {
+		return fmt.Errorf("failed to fetch channel info: %w", err)
+	}
+
+	if len(channels.GetChats()) == 0 {
+		return errors.New("no channels found")
+	}
+
+	channel, ok := channels.GetChats()[0].(*tg.Channel)
+	if !ok {
+		return errors.New("unexpected type: failed to cast to *tg.Channel")
+	}
+
+	r.client.PeerStorage.AddPeer(channel.GetID(), channel.AccessHash, storage.TypeChannel, channel.Username)
+	r.logger.Info("access hash updated successfully", zap.Int64("channel_id", channel.GetID()))
+
+	return nil
+}
+
 func limitGroupsByMostRecent(groups map[int64][]*tg.Message, needed int) map[int64][]*tg.Message {
 	type groupInfo struct {
 		groupID  int64

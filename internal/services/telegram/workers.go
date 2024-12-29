@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/celestix/gotgproto"
 	"github.com/celestix/gotgproto/sessionMaker"
+	"github.com/celestix/gotgproto/storage"
 	"github.com/gotd/td/tg"
 	"go-winx-api/config"
 	"go.uber.org/zap"
@@ -73,12 +74,46 @@ func (w *UserWorkers) Add(token string) (err error) {
 	return nil
 }
 
+func (w *Worker) EnsureValidAccessHash(ctx context.Context, channelID int64) error {
+	inputChannel := &tg.InputChannel{
+		ChannelID: channelID,
+	}
+
+	channels, err := w.Client.API().ChannelsGetChannels(ctx, []tg.InputChannelClass{inputChannel})
+	if err != nil {
+		w.log.Error("Failed to refresh access_hash", zap.Error(err))
+		return err
+	}
+
+	if len(channels.GetChats()) == 0 {
+		return fmt.Errorf("no channels found for ID %d", channelID)
+	}
+
+	channel, ok := channels.GetChats()[0].(*tg.Channel)
+	if !ok {
+		return fmt.Errorf("failed to cast channel response to tg.Channel for ID %d", channelID)
+	}
+
+	w.Client.PeerStorage.AddPeer(channel.GetID(), channel.AccessHash, storage.TypeChannel, channel.Username)
+	w.log.Info("access hash updated successfully", zap.Int64("channel_id", channel.GetID()))
+
+	return nil
+}
+
 func GetNextWorker() *Worker {
 	Workers.mut.Lock()
 	defer Workers.mut.Unlock()
 	index := (Workers.index + 1) % len(Workers.Users)
 	Workers.index = index
 	worker := Workers.Users[index]
+
+	err := worker.EnsureValidAccessHash(context.Background(), config.ValueOf.ChannelId)
+	if err != nil {
+		Workers.log.Error("Failed to update access_hash for worker", zap.Int("worker_id", worker.Id), zap.Error(err))
+	} else {
+		Workers.log.Info("Access hash updated successfully", zap.Int("worker_id", worker.Id))
+	}
+
 	Workers.log.Sugar().Debugf("using worker %d", worker.Id)
 	return worker
 }

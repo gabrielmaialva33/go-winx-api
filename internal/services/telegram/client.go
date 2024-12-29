@@ -8,7 +8,6 @@ import (
 
 	"github.com/celestix/gotgproto"
 	"github.com/celestix/gotgproto/sessionMaker"
-	"github.com/gotd/td/telegram"
 	"go.uber.org/zap"
 )
 
@@ -35,13 +34,6 @@ func InitClient(log *zap.Logger) (*gotgproto.Client, error) {
 				Session:          session,
 				DisableCopyright: true,
 				InMemory:         true,
-				Logger:           log,
-				Middlewares:      GetFloodMiddleware(log),
-				Device: &telegram.DeviceConfig{
-					DeviceModel:   "winx-api",
-					AppVersion:    "1.0.0",
-					SystemVersion: "linux",
-				},
 			},
 		)
 		clientChan <- struct {
