@@ -25,8 +25,6 @@ func main() {
 		logger.Fatal("error while starting telegram client", zap.Error(err))
 	}
 
-	telegram.TgClient = client
-
 	cache.InitCache(log)
 
 	workers, err := telegram.StartWorkers(log)
