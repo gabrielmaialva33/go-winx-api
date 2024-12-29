@@ -40,9 +40,7 @@ func main() {
 	logger.Info("server started", zap.Int("port", config.ValueOf.Port))
 	logger.Sugar().Infof("server is running at %s", config.ValueOf.Host)
 
-	repository := telegram.NewRepository(client, log)
-
-	s := http.NewServer(log, repository)
+	s := http.NewServer(log)
 	s.Start()
 
 }

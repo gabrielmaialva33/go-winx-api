@@ -2,11 +2,10 @@ package routes
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"go-winx-api/internal/services/telegram"
 	"go.uber.org/zap"
 )
 
-func SetupRoutes(app *fiber.App, log *zap.Logger, repository *telegram.Repository) {
+func SetupRoutes(app *fiber.App, log *zap.Logger) {
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.Redirect("/docs")
 	})
@@ -15,5 +14,5 @@ func SetupRoutes(app *fiber.App, log *zap.Logger, repository *telegram.Repositor
 		return c.SendFile("./docs/redoc.html")
 	})
 
-	registerPostRoutes(app, log, repository)
+	registerPostRoutes(app, log)
 }

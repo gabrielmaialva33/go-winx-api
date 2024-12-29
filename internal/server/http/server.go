@@ -6,29 +6,26 @@ import (
 	"go-winx-api/config"
 	"go-winx-api/internal/server/http/middleware"
 	"go-winx-api/internal/server/http/routes"
-	"go-winx-api/internal/services/telegram"
 	"go.uber.org/zap"
 )
 
 type Server struct {
-	App        *fiber.App
-	Log        *zap.Logger
-	Repository *telegram.Repository
+	App *fiber.App
+	Log *zap.Logger
 }
 
-func NewServer(log *zap.Logger, repository *telegram.Repository) *Server {
+func NewServer(log *zap.Logger) *Server {
 	app := fiber.New()
 
 	app.Use(middleware.RequestLogger(log))
 
 	app.Static("/", "./docs")
 
-	routes.SetupRoutes(app, log, repository)
+	routes.SetupRoutes(app, log)
 
 	return &Server{
-		App:        app,
-		Log:        log,
-		Repository: repository,
+		App: app,
+		Log: log,
 	}
 }
 
