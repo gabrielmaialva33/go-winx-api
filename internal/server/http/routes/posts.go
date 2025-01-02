@@ -11,8 +11,7 @@ func registerPostRoutes(app *fiber.App, log *zap.Logger) {
 
 	api := app.Group("/api/v1")
 
-	worker := telegram.GetNextWorker()
-	repository := telegram.NewRepository(worker.Client, log)
+	repository := telegram.NewRepository(log)
 
 	api.Get("/posts", handlers.GetAllPosts(log, repository))
 	api.Get("/posts/:message_id", handlers.GetPost(log, repository))

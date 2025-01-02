@@ -8,6 +8,7 @@ import (
 	"go-winx-api/internal/cache"
 	"io"
 	"sort"
+	"strings"
 
 	"go-winx-api/config"
 	"go-winx-api/internal/models"
@@ -20,22 +21,25 @@ import (
 )
 
 type Repository struct {
-	client  *gotgproto.Client
-	channel *tg.InputChannel
-	logger  *zap.Logger
+	client *gotgproto.Client
+	logger *zap.Logger
+	peer   tg.InputPeerClass
 }
 
-func NewRepository(client *gotgproto.Client, logger *zap.Logger) *Repository {
-	channel, err := GetInputChannel(context.Background(), client)
+func NewRepository(logger *zap.Logger) *Repository {
+	worker := GetNextWorker()
+
+	err := refreshAccessHash(context.Background(), worker.Client, logger)
 	if err != nil {
-		logger.Error("failed to get channel peer", zap.Error(err))
-		return nil
+		logger.Error("failed to refresh access hash", zap.Error(err))
 	}
 
+	peer := worker.Client.PeerStorage.GetInputPeerById(config.ValueOf.ChannelId)
+
 	return &Repository{
-		client:  client,
-		channel: channel,
-		logger:  logger,
+		client: worker.Client,
+		logger: logger,
+		peer:   peer,
 	}
 }
 
@@ -324,7 +328,7 @@ func (r *Repository) GetFile(ctx context.Context, messageID int) (*models.File, 
 	var cachedFile models.File
 	err := cache.GetCache().GetFile(key, &cachedFile)
 	if err == nil {
-		r.logger.Sugar().Info("using cached media message properties", messageID, r.client.Self.ID)
+		r.logger.Sugar().Infof("using cached media message properties for message %d from user %d", messageID, r.client.Self.ID)
 		return &cachedFile, nil
 	}
 
@@ -567,4 +571,19 @@ func GetImageURL(messageID int) string {
 
 func GetVideoURL(messageID int) string {
 	return fmt.Sprintf(config.ValueOf.Host+"/api/v1/posts/videos/%d", messageID)
+}
+
+func isChannelInvalidError(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "CHANNEL_INVALID")
+}
+
+func refreshAccessHash(ctx context.Context, client *gotgproto.Client, logger *zap.Logger) error {
+	logger.Info("Refreshing AccessHash...")
+	repo := &Repository{client: client, logger: logger}
+	if err := repo.RefreshAccessHash(ctx); err != nil {
+		logger.Error("Failed to refresh AccessHash", zap.Error(err))
+		return err
+	}
+	logger.Info("AccessHash refreshed successfully")
+	return nil
 }

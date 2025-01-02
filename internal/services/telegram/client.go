@@ -33,7 +33,8 @@ func InitClient(log *zap.Logger) (*gotgproto.Client, error) {
 			&gotgproto.ClientOpts{
 				Session:          session,
 				DisableCopyright: true,
-				InMemory:         true,
+				Logger:           log,
+				Middlewares:      GetFloodMiddleware(log),
 			},
 		)
 		clientChan <- struct {

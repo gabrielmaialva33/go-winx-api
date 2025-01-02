@@ -3,15 +3,17 @@ package telegram
 import (
 	"context"
 	"fmt"
+	"sync"
+	"sync/atomic"
+	"time"
+
+	"go-winx-api/config"
+
 	"github.com/celestix/gotgproto"
 	"github.com/celestix/gotgproto/sessionMaker"
 	"github.com/celestix/gotgproto/storage"
 	"github.com/gotd/td/tg"
-	"go-winx-api/config"
 	"go.uber.org/zap"
-	"sync"
-	"sync/atomic"
-	"time"
 )
 
 type Worker struct {
