@@ -3,6 +3,7 @@ package http
 import (
 	"fmt"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"go-winx-api/config"
 	"go-winx-api/internal/server/http/middleware"
 	"go-winx-api/internal/server/http/routes"
@@ -17,6 +18,10 @@ type Server struct {
 func NewServer(log *zap.Logger) *Server {
 	app := fiber.New()
 
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*",
+		AllowHeaders: "Origin, Content-Type, Accept",
+	}))
 	app.Use(middleware.RequestLogger(log))
 
 	app.Static("/", "./docs")
