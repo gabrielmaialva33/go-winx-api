@@ -1,6 +1,6 @@
 module go-winx-api
 
-go 1.23.4
+go 1.23.5
 
 require (
 	github.com/celestix/gotgproto v1.0.0-beta18
